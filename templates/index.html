@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>IV Curve Analizer for FV</title>
+    <!-- Stylesheet (relative to templates/ when opening file locally) -->
+    <link rel="stylesheet" href="../static/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h2>IV Curve for PV Module monitor</h2>
+        <div class="controls">
+            <button id="botonConectar" class="btn">Connect Bluetooth</button>
+                        <button id="botonSolicitarIV" class="btn" disabled>Solicitar IV</button>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button id="botonLED" class="btn" disabled>Encender LED</button>
+                            <span id="ledIndicator" class="led-indicator off" aria-label="Estado LED"></span>
+                        </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="graficoIV"></canvas>
+        </div>
+    </div>
+
+    <!-- Local fallback for direct file open (templates/ -> ../static/js/) -->
+    <script src="../static/js/app.js"></script>
+    <!-- Removed Flask template tag for static serving -->
+</body>
+</html>
