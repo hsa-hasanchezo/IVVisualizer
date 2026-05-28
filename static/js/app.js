@@ -6,6 +6,7 @@ if (!window.__ivvisualizer_initialized) {
     const botonConectar = document.getElementById('botonConectar');
     const botonSolicitarIV = document.getElementById('botonSolicitarIV');
     const botonLED = document.getElementById('botonLED');
+    const botonDescargarCSV = document.getElementById('botonDescargarCSV');
     const ledIndicator = document.getElementById('ledIndicator');
     const canvasEl = document.getElementById('graficoIV');
     if (!canvasEl) return; // nada que hacer si no existe el canvas
@@ -90,6 +91,8 @@ if (!window.__ivvisualizer_initialized) {
       }
       // update chart without animation
       try { graficoIV.update('none'); } catch (e) { console.warn('Chart update failed', e); }
+      // enable CSV button if there is data
+      try { if (botonDescargarCSV) botonDescargarCSV.disabled = (datosCurva.length === 0); } catch (e) {}
     }
 
     // Periodic flush
@@ -135,6 +138,7 @@ if (!window.__ivvisualizer_initialized) {
           if (botonLED) {
             botonLED.disabled = false;
             botonLED.innerText = ledOn ? 'Apagar LED' : 'Encender LED';
+            botonLED.style.background = ledOn ? "#2196f3" : "";
           }
 
           botonConectar.innerText = "⚡ Connected (click to disconnect)";
@@ -151,7 +155,10 @@ if (!window.__ivvisualizer_initialized) {
             } catch (e) {
               console.warn('No se pudo leer estado inicial desde la característica', e);
             }
-            if (botonLED) botonLED.innerText = ledOn ? 'Apagar LED' : 'Encender LED';
+            if (botonLED) {
+              botonLED.innerText = ledOn ? 'Apagar LED' : 'Encender LED';
+              botonLED.style.background = ledOn ? "#2196f3" : "";
+            }
             if (ledIndicator) {
               ledIndicator.classList.toggle('on', ledOn);
               ledIndicator.classList.toggle('off', !ledOn);
@@ -199,13 +206,13 @@ if (!window.__ivvisualizer_initialized) {
             } else {
               // Mensajes de estado como LED_ON / LED_OFF
               const t = textoDecodificado.toUpperCase();
-              if (t.indexOf('LED_ON') !== -1) {
+                if (t.indexOf('LED_ON') !== -1) {
                 ledOn = true;
-                if (botonLED) botonLED.innerText = 'Apagar LED';
+                if (botonLED) { botonLED.innerText = 'Apagar LED'; botonLED.style.background = "#2196f3"; }
                 if (ledIndicator) { ledIndicator.classList.add('on'); ledIndicator.classList.remove('off'); }
               } else if (t.indexOf('LED_OFF') !== -1) {
                 ledOn = false;
-                if (botonLED) botonLED.innerText = 'Encender LED';
+                if (botonLED) { botonLED.innerText = 'Encender LED'; botonLED.style.background = ""; }
                 if (ledIndicator) { ledIndicator.classList.add('off'); ledIndicator.classList.remove('on'); }
               } else {
                 console.log('Notificación no reconocida:', textoDecodificado);
@@ -258,11 +265,39 @@ if (!window.__ivvisualizer_initialized) {
             ledOn = !ledOn;
           }
           botonLED.innerText = ledOn ? 'Apagar LED' : 'Encender LED';
+          botonLED.style.background = ledOn ? "#2196f3" : "";
           if (ledIndicator) { ledIndicator.classList.toggle('on', ledOn); ledIndicator.classList.toggle('off', !ledOn); }
         } catch (err) {
           console.error('Error toggling LED', err);
           alert('Error al cambiar estado del LED');
         }
+      });
+    }
+
+    // Descargar CSV con todos los puntos actualmente en memoria (datos confirmados + buffer)
+    if (botonDescargarCSV) {
+      botonDescargarCSV.disabled = true; // inicialmente sin datos
+      botonDescargarCSV.addEventListener('click', () => {
+        const points = [].concat(datosCurva, puntosBuffer);
+        if (!points || points.length === 0) return alert('No hay datos para exportar');
+        const rows = ['Voltage,Current'];
+        for (const p of points) {
+          // proteger si p tiene propiedades distintas
+          const vx = (p && typeof p.x === 'number') ? p.x : (p && p[0] ? p[0] : '');
+          const vy = (p && typeof p.y === 'number') ? p.y : (p && p[1] ? p[1] : '');
+          rows.push(`${vx},${vy}`);
+        }
+        const csv = rows.join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const ts = new Date().toISOString().replace(/[:.]/g, '-');
+        a.download = `iv_curve_${ts}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
       });
     }
   });
