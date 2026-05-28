@@ -42,37 +42,93 @@ if (!window.__ivvisualizer_initialized) {
                 borderColor: '#ffca28',
                 backgroundColor: 'rgba(255, 202, 40, 0.1)',
                 borderWidth: 3,
-                tension: 0.4,
-                pointRadius: 2
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          hitRadius: 6
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+        animation: { duration: 0 },
+        elements: { point: { radius: 3 } },
+        interaction: { mode: 'nearest', intersect: true },
             scales: {
                 x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Voltage (V)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' } },
                 y: { title: { display: true, text: 'Current (A)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 6 }
             },
-            plugins: { legend: { labels: { color: '#fff' } } }
+        plugins: {
+          legend: { labels: { color: '#fff' } },
+          tooltip: {
+            enabled: true,
+            callbacks: {
+              label: function(context) {
+                const x = context.parsed.x;
+                const y = context.parsed.y;
+                if (x == null || y == null) return '';
+                return `V: ${x.toFixed(2)} V, I: ${y.toFixed(3)} A`;
+              }
+            }
+          }
+        }
         }
     });
 
+    // Buffer for incoming points and throttled flush to Chart.js
+    const puntosBuffer = [];
+    const MAX_POINTS = 2000; // cap stored points to avoid slowdowns
+    const FLUSH_INTERVAL_MS = 15; // update chart at most every 100ms
+
+    function flushBufferToChart() {
+      if (puntosBuffer.length === 0) return;
+      // append buffered points
+      datosCurva.push(...puntosBuffer.splice(0, puntosBuffer.length));
+      // enforce max length
+      if (datosCurva.length > MAX_POINTS) {
+      datosCurva.splice(0, datosCurva.length - MAX_POINTS);
+      }
+      // update chart without animation
+      try { graficoIV.update('none'); } catch (e) { console.warn('Chart update failed', e); }
+    }
+
+    // Periodic flush
+    const flushTimer = setInterval(flushBufferToChart, FLUSH_INTERVAL_MS);
+
     // 2. Lógica de conexión Bluetooth (si existe el botón y la API está disponible)
     let connectedCharacteristic = null;
+    let connectedDevice = null;
+    let connectedServer = null;
     let ledOn = false;
 
     if (botonConectar && hasWebBluetooth) {
       botonConectar.addEventListener('click', async () => {
         try {
-          const device = await navigator.bluetooth.requestDevice({
-            filters: [{ name: 'ESP32_Web_BLE' }],
-            optionalServices: [SERVICE_UUID]
-          });
+          // si ya estamos conectados, usamos el mismo botón para desconectar y apagar LED
+          if (connectedDevice && connectedDevice.gatt && connectedDevice.gatt.connected) {
+            try {
+              if (connectedCharacteristic) {
+                // intentar apagar el LED en el dispositivo antes de desconectar
+                try { await connectedCharacteristic.writeValue(new TextEncoder().encode('LED_OFF')); } catch (e) { /* ignore */ }
+              }
+            } catch (e) {}
+            try { connectedDevice.gatt.disconnect(); } catch (e) {}
+            connectedDevice = null; connectedServer = null; connectedCharacteristic = null;
+            botonConectar.innerText = 'Connect Bluetooth';
+            botonConectar.style.background = '';
+            if (botonSolicitarIV) botonSolicitarIV.disabled = true;
+            if (botonLED) { botonLED.disabled = true; botonLED.innerText = 'Encender LED'; }
+            if (ledIndicator) { ledIndicator.classList.remove('on'); ledIndicator.classList.add('off'); }
+            return;
+          }
+
+          const device = await navigator.bluetooth.requestDevice({ filters: [{ name: 'ESP32_Web_BLE' }], optionalServices: [SERVICE_UUID] });
 
           const server = await device.gatt.connect();
           const service = await server.getPrimaryService(SERVICE_UUID);
           const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
           connectedCharacteristic = characteristic; // exponer para escritura desde otros botones
+          connectedDevice = device; connectedServer = server;
 
           // habilitar botones de acción una vez conectados
           if (botonSolicitarIV) botonSolicitarIV.disabled = false;
@@ -81,17 +137,19 @@ if (!window.__ivvisualizer_initialized) {
             botonLED.innerText = ledOn ? 'Apagar LED' : 'Encender LED';
           }
 
-          botonConectar.innerText = "⚡ Connected";
+          botonConectar.innerText = "⚡ Connected (click to disconnect)";
           botonConectar.style.background = "#2196f3";
 
           // Leer estado inicial del dispositivo (p. ej. LED_ON / LED_OFF) para sincronizar UI
           try {
-            const initial = await connectedCharacteristic.readValue();
-            const texto = new TextDecoder().decode(initial.buffer ? initial.buffer : initial);
-            if (texto.indexOf('LED_ON') !== -1) {
-              ledOn = true;
-            } else if (texto.indexOf('LED_OFF') !== -1) {
-              ledOn = false;
+            try {
+              const initial = await connectedCharacteristic.readValue();
+              const decodedInitial = new TextDecoder('utf-8').decode(initial);
+              const texto = (decodedInitial || '').trim().toUpperCase();
+              if (texto.indexOf('LED_ON') !== -1) { ledOn = true; }
+              else if (texto.indexOf('LED_OFF') !== -1) { ledOn = false; }
+            } catch (e) {
+              console.warn('No se pudo leer estado inicial desde la característica', e);
             }
             if (botonLED) botonLED.innerText = ledOn ? 'Apagar LED' : 'Encender LED';
             if (ledIndicator) {
@@ -105,8 +163,10 @@ if (!window.__ivvisualizer_initialized) {
           await characteristic.startNotifications();
           
           characteristic.addEventListener('characteristicvaluechanged', (event) => {
-            const value = event.target.value; 
-            const textoDecodificado = new TextDecoder('utf-8').decode(value);
+            const value = event.target.value;
+            let textoDecodificado = '';
+            try { textoDecodificado = new TextDecoder('utf-8').decode(value); } catch (e) { textoDecodificado = ''; }
+            textoDecodificado = (textoDecodificado || '').trim();
 
             // Mensaje IV esperado como CSV "Voltaje,Corriente"
             if (textoDecodificado.includes(',')) {
@@ -114,22 +174,36 @@ if (!window.__ivvisualizer_initialized) {
               const v = parseFloat(partes[0]);
               const i = parseFloat(partes[1]);
 
-              // Si detectamos que reinició el barrido (voltaje vuelve a 0), limpiamos la gráfica
-              if (v === 0 && datosCurva.length > 5) {
-                datosCurva.length = 0; 
+              // Si detectamos que reinició el barrido (voltaje vuelve a 0), limpiamos buffer y gráfica
+              if (v === 0 && (datosCurva.length + puntosBuffer.length) > 5) {
+                datosCurva.length = 0;
+                puntosBuffer.length = 0;
+                if (graficoIV && graficoIV.data && graficoIV.data.datasets && graficoIV.data.datasets[0]) {
+                  graficoIV.data.datasets[0].data.length = 0;
+                  try { graficoIV.update('none'); } catch (e) {}
+                }
               }
 
-              // Añadimos el nuevo punto al formato {x, y} que entiende Chart.js
-              datosCurva.push({ x: v, y: i });
-              // Refrescamos el gráfico
-              graficoIV.update('none'); 
+              // Añadimos el nuevo punto al buffer en lugar de forzar una actualización inmediata
+              puntosBuffer.push({ x: v, y: i });
+
+              // Actualizar displays en la UI con los últimos valores (no toca redibujar todo)
+              try {
+                const voltageEl = document.getElementById('voltageValue');
+                const currentEl = document.getElementById('currentValue');
+                if (voltageEl) voltageEl.innerText = isNaN(v) ? '-' : v.toFixed(2);
+                if (currentEl) currentEl.innerText = isNaN(i) ? '-' : i.toFixed(3);
+              } catch (e) {
+                // no hacer nada si DOM no está disponible
+              }
             } else {
               // Mensajes de estado como LED_ON / LED_OFF
-              if (textoDecodificado.indexOf('LED_ON') !== -1) {
+              const t = textoDecodificado.toUpperCase();
+              if (t.indexOf('LED_ON') !== -1) {
                 ledOn = true;
                 if (botonLED) botonLED.innerText = 'Apagar LED';
                 if (ledIndicator) { ledIndicator.classList.add('on'); ledIndicator.classList.remove('off'); }
-              } else if (textoDecodificado.indexOf('LED_OFF') !== -1) {
+              } else if (t.indexOf('LED_OFF') !== -1) {
                 ledOn = false;
                 if (botonLED) botonLED.innerText = 'Encender LED';
                 if (ledIndicator) { ledIndicator.classList.add('off'); ledIndicator.classList.remove('on'); }
@@ -171,7 +245,18 @@ if (!window.__ivvisualizer_initialized) {
         try {
           const cmd = ledOn ? 'LED_OFF' : 'LED_ON';
           await connectedCharacteristic.writeValue(new TextEncoder().encode(cmd));
-          ledOn = !ledOn;
+          // Intentar leer estado confirmado por el dispositivo; si falla, cambiar estado localmente
+          try {
+            const resp = await connectedCharacteristic.readValue();
+            const decoded = new TextDecoder('utf-8').decode(resp || resp.buffer || resp);
+            const t = (decoded || '').trim().toUpperCase();
+            if (t.indexOf('LED_ON') !== -1) ledOn = true;
+            else if (t.indexOf('LED_OFF') !== -1) ledOn = false;
+            else ledOn = !ledOn; // fallback
+          } catch (e) {
+            // si no se pudo leer, invertimos el estado local como indicación inmediata
+            ledOn = !ledOn;
+          }
           botonLED.innerText = ledOn ? 'Apagar LED' : 'Encender LED';
           if (ledIndicator) { ledIndicator.classList.toggle('on', ledOn); ledIndicator.classList.toggle('off', !ledOn); }
         } catch (err) {

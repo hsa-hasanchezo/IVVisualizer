@@ -324,3 +324,33 @@ th {
   box-shadow: none;
 }
 
+/* Readout displays for real-time voltage/current */
+.readouts {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 8px;
+}
+.readout {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.04);
+  padding: 8px 12px;
+  border-radius: 10px;
+  min-width: 120px;
+  text-align: center;
+}
+.readout .label {
+  font-size: 0.75rem;
+  color: #cfcfcf;
+  margin-bottom: 4px;
+}
+.readout .value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+@media (max-width: 620px) {
+  .readouts { flex-direction: column; gap: 8px; }
+}
+

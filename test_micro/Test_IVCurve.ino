@@ -10,11 +10,21 @@ BLECharacteristic *pCharacteristic;
 bool deviceConnected = false;
 bool sendIVRequested = false; // Cuando se recibe GET_IV, se activa
 bool ledState = false;
+bool ledDesiredState = false; // estado pedido por el cliente (se aplica en loop)
 
-// Helper para cambiar el estado del LED y notificar al cliente
-void setLed(bool on) {
-  ledState = on;
-  digitalWrite(LED_BUILTIN, on ? HIGH : LOW);
+// Aplicar estado físico del LED (usa la polaridad del pin del tablero)
+void applyLedHardware(bool on) {
+  // En muchas placas ESP32 el LED integrado es ACTIVE LOW. Ajusta si es necesario.
+  const bool LED_ACTIVE_HIGH = false; // cambia a true si tu LED enciende con HIGH
+  if (LED_ACTIVE_HIGH) {
+    digitalWrite(LED_BUILTIN, on ? HIGH : LOW);
+  } else {
+    digitalWrite(LED_BUILTIN, on ? LOW : HIGH);
+  }
+}
+
+// Notificar estado al cliente (sin tocar hardware)
+void notifyLedState(bool on) {
   if (pCharacteristic) {
     pCharacteristic->setValue(on ? "LED_ON" : "LED_OFF");
     pCharacteristic->notify();
@@ -42,20 +52,20 @@ class MyCharacteristicCallbacks: public BLECharacteristicCallbacks {
           sendIVRequested = true;
           Serial.println("Comando: GET_IV -> Enviando curva I-V (una vez)");
         } else if (value.equals("LED_ON")) {
-          setLed(true);
-          Serial.println("Comando: LED_ON -> LED encendido");
+          ledDesiredState = true; // se aplicará en loop
+          notifyLedState(ledDesiredState);
+          Serial.println("Comando: LED_ON -> pedido de encendido");
         } else if (value.equals("LED_OFF")) {
-          setLed(false);
-          Serial.println("Comando: LED_OFF -> LED apagado");
+          ledDesiredState = false; // se aplicará en loop
+          notifyLedState(ledDesiredState);
+          Serial.println("Comando: LED_OFF -> pedido de apagado");
         } else if (value.equals("LED_TOGGLE")) {
-          setLed(!ledState);
-          Serial.println("Comando: LED_TOGGLE -> LED cambiado");
+          ledDesiredState = !ledDesiredState; // cambiar pedido
+          notifyLedState(ledDesiredState);
+          Serial.println("Comando: LED_TOGGLE -> pedido de cambio de estado");
         } else if (value.equals("GET_LED") || value.equals("LED?")) {
-          // Responder con el estado actual sin cambiarlo
-          if (pCharacteristic) {
-            pCharacteristic->setValue(ledState ? "LED_ON" : "LED_OFF");
-            pCharacteristic->notify();
-          }
+          // Responder con el estado actual solicitado/aplicado
+          notifyLedState(ledState);
         } else {
           Serial.println("Comando desconocido");
         }
@@ -122,6 +132,8 @@ void setup() {
   BLEDevice::startAdvertising();
   
   Serial.println("¡ESP32 listo y esperando conexión web!");
+  // Asegurar estado físico inicial del LED según la variable ledState
+  applyLedHardware(ledState);
 }
 
 void loop() {
@@ -147,5 +159,13 @@ void loop() {
     voltajeActual = 0.0;
     sendIVRequested = false;
     Serial.println("--- Barrido I-V completado ---");
+  }
+
+  // Aplicar cambios pendientes al LED solicitados por el cliente
+  if (ledDesiredState != ledState) {
+    ledState = ledDesiredState;
+    applyLedHardware(ledState);
+    notifyLedState(ledState);
+    Serial.println(String("LED físico -> ") + (ledState ? "ENCENDIDO" : "APAGADO"));
   }
 }
