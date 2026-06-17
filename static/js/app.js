@@ -216,10 +216,6 @@ if (!window.__ivvisualizer_initialized) {
                 if (dispPout) dispPout.innerText = pOutReal.toFixed(1);
                 if (dispDuty) dispDuty.innerText = dutyVal.toFixed(0);
                 if (dispEff)  dispEff.innerText  = eficiencia.toFixed(1);
-
-                // 5. Alimentar la Gráfica IV y PV en tiempo real (Usamos voltaje de entrada como eje X)
-                puntosBufferIV.push({ x: vInReal, y: iInReal });
-                puntosBufferPV.push({ x: vInReal, y: pInReal });
             }
           });
 
