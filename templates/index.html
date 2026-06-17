@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>IV & PV Curve Analyzer for FV</title>
+    <title>PV Solar Optimizer with IV tracing</title>
     <link rel="stylesheet" href="../static/css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -21,63 +21,59 @@
 <body>
 
     <div class="container">
-        <h2>IV Curve for PV Module monitor</h2>
+        <h2>PV Solar Optimizer with IV tracing</h2>
         
         <div class="controls">
             <div class="grid-2">
                 <button id="botonConectar" class="btn">Connect Bluetooth</button>
-                <button id="botonConfig" class="btn" style="background-color: #555;">Configuración</button>
+                <button id="botonConfig" class="btn" style="background-color: #555;">Configuration</button>
             </div>
 
             <div class="control-group" style="margin-top: 10px;">
-                <label for="selectorModo">Modo de Control:</label>
+                <label for="selectorModo">Control mode:</label>
                 <select id="selectorModo">
-                    <option value="MODO1">Modo 1: Manual</option>
-                    <option value="MODO2">Modo 2: Barrido IV</option>
-                    <option value="MODO3">Modo 3: MPPT Fijo</option>
-                    <option value="MODO4">Modo 4: Regulado</option>
+                    <option value="MODO1">Duty cycle control mode</option>
+                    <option value="MODO2">Input voltage control mode</option>
+                    <option value="MODO3">Input power control mode</option>
+                    <option value="MODO4">MPPT control mode</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <label id="labelSlider" for="barraFijarVal">Valor de Consigna: <span id="valorSliderText">50</span>%</label>
+                <label id="labelSlider" for="barraFijarVal">Setpoint value: <span id="valorSliderText">50</span>%</label>
                 <input type="range" id="barraFijarVal" min="0" max="100" value="50" disabled>
             </div>
 
-            <div class="grid-2">
-                <button id="botonSolicitarIV" class="btn" disabled>Solicitar IV</button>
-                <div style="display:flex;align-items:center;gap:8px; flex: 1; justify-content: center;">
-                    <button id="botonLED" class="btn" style="width: 100%;" disabled>Encender LED</button>
-                    <span id="ledIndicator" class="led-indicator off" aria-label="Estado LED"></span>
-                </div>
+            <div style="width: 100%;">
+                <button id="IV trace" class="btn" style="width: 100%;" disabled>IV trace</button>
             </div>
 
             <div class="readouts-4">
                 <div class="readout mini">
-                    <div class="label">Input V</div>
+                    <div class="label">Input Voltage</div>
                     <div class="value"><span id="inVoltValue">-</span> V</div>
                 </div>
                 <div class="readout mini">
-                    <div class="label">Input I</div>
+                    <div class="label">Input Current</div>
                     <div class="value"><span id="inCurrValue">-</span> A</div>
                 </div>
                 <div class="readout mini">
-                    <div class="label">Output V</div>
+                    <div class="label">Output Voltage</div>
                     <div class="value"><span id="outVoltValue">-</span> V</div>
                 </div>
                 <div class="readout mini">
-                    <div class="label">Output I</div>
+                    <div class="label">Output Current</div>
                     <div class="value"><span id="outCurrValue">-</span> A</div>
                 </div>
             </div>
 
             <div class="readouts-4">
                 <div class="readout mini">
-                    <div class="label">Input P</div>
+                    <div class="label">Input Power</div>
                     <div class="value"><span id="inPowerValue">-</span> W</div>
                 </div>
                 <div class="readout mini">
-                    <div class="label">Output P</div>
+                    <div class="label">Output Power</div>
                     <div class="value"><span id="outPowerValue">-</span> W</div>
                 </div>
                 <div class="readout mini">
@@ -96,7 +92,7 @@
         </div>
 
         <div class="chart-actions" style="margin-top:10px;">
-            <button id="botonDescargarCSV" class="btn btn-csv">Descargar CSV</button>
+            <button id="botonDescargarCSV" class="btn btn-csv">Download CSV</button>
         </div>
     </div>
 
