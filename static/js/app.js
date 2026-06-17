@@ -128,8 +128,11 @@ if (!window.__ivvisualizer_initialized) {
             return;
           }
 
-          const device = await navigator.bluetooth.requestDevice({ filters: [{ name: 'DSD TECH' }], optionalServices: [SERVICE_UUID] });
-
+          //const device = await navigator.bluetooth.requestDevice({ filters: [{ name: 'DSD TECH' }], optionalServices: [SERVICE_UUID] });
+          const device = await navigator.bluetooth.requestDevice({ 
+          filters: [{ services: [SERVICE_UUID] }] 
+          });
+          
           const server = await device.gatt.connect();
           const service = await server.getPrimaryService(SERVICE_UUID);
           const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
