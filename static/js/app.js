@@ -121,15 +121,7 @@ if (!window.__ivvisualizer_initialized) {
     const FLUSH_INTERVAL_MS = 15;
 
     function flushBufferToChart() {
-      if (puntosBufferIV.length === 0 && puntosBufferPV.length === 0) return;
       
-      datosCurva.push(...puntosBufferIV.splice(0, puntosBufferIV.length));
-      datosPotencia.push(...puntosBufferPV.splice(0, puntosBufferPV.length));
-      
-      if (datosCurva.length > MAX_POINTS) datosCurva.splice(0, datosCurva.length - MAX_POINTS);
-      if (datosPotencia.length > MAX_POINTS) datosPotencia.splice(0, datosPotencia.length - MAX_POINTS);
-      
-      try { graficoIV.update('none'); } catch (e) { console.warn('Chart update failed', e); }
     }
 
     const flushTimer = setInterval(flushBufferToChart, FLUSH_INTERVAL_MS);
