@@ -138,7 +138,22 @@ if (!window.__ivvisualizer_initialized) {
         try {
           // Desconexión limpia
           if (connectedDevice && connectedDevice.gatt && connectedDevice.gatt.connected) {
+            // 1. Detenemos el envío automático de telemetría inmediatamente
             if (loopTelemetria) { clearInterval(loopTelemetria); loopTelemetria = null; }
+            
+            // 2. ENVIAR COMANDO DE APAGADO DE SEGURIDAD (0% Duty) ANTES DE DESCONECTAR
+            if (connectedCharacteristic) {
+                try {
+                    // Enviamos Modo Duty Cycle (0xB3) con valor Raw = 0 (0x00, 0x00)
+                    const comandoApagar = new Uint8Array([0xAA, 0xB3, 0x00, 0x00]);
+                    await connectedCharacteristic.writeValue(comandoApagar);
+                    console.log("Convertidor apagado con éxito (Duty 0%).");
+                } catch (e) {
+                    console.warn("No se pudo enviar el apagado. Tal vez el dispositivo se desconectó de golpe.", e);
+                }
+            }
+
+            // 3. Ahora sí, rompemos el enlace Bluetooth de forma segura
             try { connectedDevice.gatt.disconnect(); } catch (e) {}
             connectedDevice = null; connectedCharacteristic = null;
             botonConectar.innerText = 'Connect Bluetooth';
@@ -146,6 +161,7 @@ if (!window.__ivvisualizer_initialized) {
             return;
           }
 
+          // A partir de aquí sigue tu código normal para buscar y conectar el dispositivo...
           const device = await navigator.bluetooth.requestDevice({ 
             filters: [{ namePrefix: 'DSD TECH' }], 
             optionalServices: [SERVICE_UUID] 
