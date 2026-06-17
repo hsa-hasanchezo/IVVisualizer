@@ -19,7 +19,17 @@ if (!window.__ivvisualizer_initialized) {
     const labelSlider = document.getElementById('labelSlider');
     const canvasEl = document.getElementById('graficoIV');
     
-    if (!canvasEl) return; // Nada que hacer si no existe el canvas
+    // Enlaces para los Displays de Telemetría (Asegúrate de que coincidan los IDs en tu HTML)
+    const dispVin = document.getElementById('dispVin');
+    const dispIin = document.getElementById('dispIin');
+    const dispPin = document.getElementById('dispPin');
+    const dispVout = document.getElementById('dispVout');
+    const dispIout = document.getElementById('dispIout');
+    const dispPout = document.getElementById('dispPout');
+    const dispDuty = document.getElementById('dispDuty');
+    const dispEff = document.getElementById('dispEff');
+
+    if (!canvasEl) return; 
     const ctx = canvasEl.getContext('2d');
 
     // UUIDs fijos del módulo DSD TECH (HM-10)
@@ -33,13 +43,12 @@ if (!window.__ivvisualizer_initialized) {
       if (botonConectar) {
         botonConectar.disabled = true;
         botonConectar.innerText = 'Bluetooth no soportado';
-        botonConectar.title = 'Usa Chrome/Edge en localhost o HTTPS';
       }
     }
 
     // 2. INICIALIZAR GRÁFICA CON DOBLE EJE Y (Chart.js)
-    let datosCurva = [];    // Datos para Corriente (Eje izquierdo)
-    let datosPotencia = []; // Datos para Potencia (Eje derecho)
+    let datosCurva = [];    
+    let datosPotencia = []; 
 
     const graficoIV = new Chart(ctx, {
         type: 'line',
@@ -105,7 +114,7 @@ if (!window.__ivvisualizer_initialized) {
         }
     });
 
-    // Buffers para hilos de datos entrantes
+    // Buffers de renderizado de la gráfica
     const puntosBufferIV = [];
     const puntosBufferPV = [];
     const MAX_POINTS = 2000;
@@ -125,15 +134,18 @@ if (!window.__ivvisualizer_initialized) {
 
     const flushTimer = setInterval(flushBufferToChart, FLUSH_INTERVAL_MS);
 
-    // Variables globales de control Bluetooth
+    // Variables de control Bluetooth y Loop de Telemetría
     let connectedCharacteristic = null;
     let connectedDevice = null;
+    let loopTelemetria = null; // Guardará el ID del setInterval del polling
 
-    // 3. LÓGICA DE CONEXIÓN BLUETOOTH
+    // 3. LÓGICA DE CONEXIÓN BLUETOOTH + PROCESAMIENTO DE DATOS CRÚDOS
     if (botonConectar && hasWebBluetooth) {
       botonConectar.addEventListener('click', async () => {
         try {
+          // Desconexión limpia
           if (connectedDevice && connectedDevice.gatt && connectedDevice.gatt.connected) {
+            if (loopTelemetria) { clearInterval(loopTelemetria); loopTelemetria = null; }
             try { connectedDevice.gatt.disconnect(); } catch (e) {}
             connectedDevice = null; connectedCharacteristic = null;
             botonConectar.innerText = 'Connect Bluetooth';
@@ -158,24 +170,81 @@ if (!window.__ivvisualizer_initialized) {
 
           await characteristic.startNotifications();
           
+          // RECEPTOR Y PROCESADOR MATEMÁTICO DE TELEMETRÍA
           characteristic.addEventListener('characteristicvaluechanged', (event) => {
             const value = event.target.value;
             let textoDecodificado = '';
             try { textoDecodificado = new TextDecoder('utf-8').decode(value); } catch (e) { return; }
             textoDecodificado = (textoDecodificado || '').trim();
 
-            console.log("Dato recibido de la UART:", textoDecodificado);
+            if (!textoDecodificado) return;
+
+            // Esperamos formato: V_IN_raw,I_IN_raw,V_OUT_raw,I_OUT_raw,Duty
+            const partes = textoDecodificado.split(',');
+            if (partes.length >= 5) {
+                // 1. Extraer los datos crudos (raw) enviados por el PIC24
+                const vInRaw  = parseFloat(partes[0]) || 0;
+                const iInRaw  = parseFloat(partes[1]) || 0;
+                const vOutRaw = parseFloat(partes[2]) || 0;
+                const iOutRaw = parseFloat(partes[3]) || 0;
+                const dutyVal = parseFloat(partes[4]) || 0;
+
+                // 2. Aplicar fórmulas de calibración local (y = m * x + n)
+                const vInReal  = (vInRaw * calibracion.V_IN_m) + calibracion.V_IN_n;
+                const iInReal  = (iInRaw * calibracion.I_IN_m) + calibracion.I_IN_n;
+                const vOutReal = (vOutRaw * calibracion.V_OUT_m) + calibracion.V_OUT_n;
+                const iOutReal = (iOutRaw * calibracion.I_OUT_m) + calibracion.I_OUT_n;
+
+                // 3. Cálculos de Potencia y Eficiencia
+                const pInReal  = vInReal * iInReal;
+                const pOutReal = vOutReal * iOutReal;
+                
+                let eficiencia = 0;
+                if (pInReal > 0.1) { // Evitamos divisiones por cero o ruido flotante
+                    eficiencia = (pOutReal / pInReal) * 100;
+                    if (eficiencia > 100) eficiencia = 100; // Capar picos irreales por transitorios
+                    if (eficiencia < 0) eficiencia = 0;
+                }
+
+                // 4. Actualizar los Displays en el HTML (con toFixed para limitar decimales)
+                if (dispVin)  dispVin.innerText  = vInReal.toFixed(2) + " V";
+                if (dispIin)  dispIin.innerText  = iInReal.toFixed(2) + " A";
+                if (dispPin)  dispPin.innerText  = pInReal.toFixed(1) + " W";
+                if (dispVout) dispVout.innerText = vOutReal.toFixed(2) + " V";
+                if (dispIout) dispIout.innerText = iOutReal.toFixed(2) + " A";
+                if (dispPout) dispPout.innerText = pOutReal.toFixed(1) + " W";
+                if (dispDuty) dispDuty.innerText = dutyVal.toFixed(0) + " %";
+                if (dispEff)  dispEff.innerText  = eficiencia.toFixed(1) + " %";
+
+                // 5. Alimentar la Gráfica IV y PV en tiempo real (Usamos voltaje de entrada como eje X)
+                puntosBufferIV.push({ x: vInReal, y: iInReal });
+                puntosBufferPV.push({ x: vInReal, y: pInReal });
+            }
           });
+
+          // DISPARADOR PERIÓDICO (Ejecución cada 250ms para un refresco fluido de 4Hz)
+          // Envía de forma exacta los bytes binarios solicitados: [0xAA, 0xA6, 0x00, 0x00]
+          loopTelemetria = setInterval(async () => {
+              if (connectedCharacteristic) {
+                  try {
+                      const comandoBytes = new Uint8Array([0xAA, 0xA6, 0x00, 0x00]);
+                      await connectedCharacteristic.writeValue(comandoBytes);
+                  } catch (e) {
+                      console.warn("Fallo en el sub-loop de polling de telemetría", e);
+                  }
+              }
+          }, 250);
 
         } catch (error) {
           console.error(error);
           botonConectar.innerText = "Error de conexión";
           botonConectar.style.background = "#f44336";
+          if (loopTelemetria) { clearInterval(loopTelemetria); loopTelemetria = null; }
         }
       });
     }
 
-    // 4. LÓGICA DINÁMICA DEL SLIDER (Control local y comandos permitidos)
+    // 4. LÓGICA DINÁMICA DEL SLIDER
     const configModos = {
         MODO1: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty):" },
         MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):" },
@@ -236,7 +305,7 @@ if (!window.__ivvisualizer_initialized) {
         actualizarSliderDinámico();
     }
 
-    // 5. CONTROL DEL MODAL DE CONFIGURACIÓN (Mantenido 100% aislado del Bluetooth)
+    // 5. CONTROL DEL MODAL DE CONFIGURACIÓN (CALIBRACIÓN)
     const botonConfig = document.getElementById('botonConfig');
     const modalConfig = document.getElementById('modalConfig');
     const btnGuardarCal = document.getElementById('btnGuardarCal');
@@ -261,7 +330,6 @@ if (!window.__ivvisualizer_initialized) {
         });
 
         btnGuardarCal.addEventListener('click', () => {
-            // Se actualizan las variables locales en la web para cálculos matemáticos posteriores
             calibracion.V_IN_m = parseFloat(document.getElementById('cal_c1').value) || 0.0;
             calibracion.V_IN_n = parseFloat(document.getElementById('cal_c2').value) || 0.0;
             calibracion.I_IN_m = parseFloat(document.getElementById('cal_c3').value) || 0.0;
@@ -273,9 +341,8 @@ if (!window.__ivvisualizer_initialized) {
 
             console.log("Constantes actualizadas con éxito en memoria web:", calibracion);
             modalConfig.style.display = 'none';
-            // Aquí NO hay funciones writeValue. El HM-10 no se entera de este cambio.
         });
     }
 
   });
-}
+}     
