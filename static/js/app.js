@@ -235,16 +235,63 @@ if (!window.__ivvisualizer_initialized) {
 
     // 4. LÓGICA DINÁMICA DEL SLIDER
     const configModos = {
-        MODO1: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty):" },
-        MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):" },
-        MODO3: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "Setpoint (Input Power):" },
-        MODO4: { habilitado: false, min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint:" }
+        MODO1: { habilitado: false, min: 0,  max: 100, step: 1,  unidad: "%",  texto: "MPPT Automático",             byteModo: 0xB1 },
+        MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):",   byteModo: 0xB2 },
+        MODO3: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty Cycle):",      byteModo: 0xB3 },
+        MODO4: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "Setpoint (Input Power):",     byteModo: 0xB4 }
     };
+
+    // Calcula el valor RAW de 16 bits según tu mapa de firmware y envía la trama [0xAA, Modo, MSB, LSB]
+    async function enviarComandoBinario() {
+        if (!connectedCharacteristic) return;
+
+        const modoActual = selectorModo.value;
+        const config = configModos[modoActual];
+        if (!config) return;
+
+        const valorSlider = parseFloat(barraFijarVal.value) || 0;
+        let valorRaw16 = 0;
+
+        // Procesamiento matemático basado en tu mapa de control real
+        if (modoActual === 'MODO1') {
+            // MODO MPPT: Control automático, la consigna es irrelevante (enviamos 0)
+            valorRaw16 = 0;
+        } 
+        else if (modoActual === 'MODO2') {
+            // VOLTAGE MODE: Despejamos el valor RAW usando la calibración -> raw = (V - n) / m
+            valorRaw16 = Math.round((valorSlider - calibracion.V_IN_n) / calibracion.V_IN_m);
+        } 
+        else if (modoActual === 'MODO3') {
+            // DUTY CYCLE MODE: Convertimos el % del slider al rango de trabajo del PIC24 (0 - 1200)
+            valorRaw16 = Math.round(valorSlider * 12);
+        }
+        else if (modoActual === 'MODO4') {
+            // POWER MODE: Enviamos el valor entero de vatios directo (0 - 400)
+            valorRaw16 = Math.round(valorSlider);
+        }
+
+        // Protección contra desbordamientos (Entero de 16 bits sin signo: 0 a 65535)
+        if (valorRaw16 < 0) valorRaw16 = 0;
+        if (valorRaw16 > 65535) valorRaw16 = 65535;
+
+        // Descomponer en MSB (Byte alto) y LSB (Byte bajo)
+        const msb = (valorRaw16 >> 8) & 0xFF;
+        const lsb = valorRaw16 & 0xFF;
+
+        // Construcción de la trama binaria de 4 bytes
+        const tramaComando = new Uint8Array([0xAA, config.byteModo, msb, lsb]);
+
+        try {
+            await connectedCharacteristic.writeValue(tramaComando);
+            console.log(`Enviado -> Modo: 0x${config.byteModo.toString(16).toUpperCase()}, Valor Raw: ${valorRaw16} (MSB: 0x${msb.toString(16).toUpperCase()}, LSB: 0x${lsb.toString(16).toUpperCase()})`);
+        } catch (e) {
+            console.warn("Error enviando comando binario al PIC24", e);
+        }
+    }
 
     function actualizarSliderDinámico() {
         const modoActual = selectorModo.value;
         const config = configModos[modoActual];
-
         if (!config) return;
 
         barraFijarVal.disabled = !config.habilitado;
@@ -253,7 +300,12 @@ if (!window.__ivvisualizer_initialized) {
         barraFijarVal.step = config.step;
         barraFijarVal.value = config.min;
 
-        actualizarTextoSlider(config.texto, config.min, config.unidad);
+        if (config.habilitado) {
+            actualizarTextoSlider(config.texto, config.min, config.unidad);
+        } else {
+            // Si es MPPT, ocultamos el valor numérico del slider ya que no aplica
+            labelSlider.innerHTML = `<strong>${config.texto}</strong>`;
+        }
     }
 
     function actualizarTextoSlider(textoLabel, valor, unidad) {
@@ -261,38 +313,28 @@ if (!window.__ivvisualizer_initialized) {
     }
 
     if (selectorModo && barraFijarVal) {
+        // Evento al cambiar el selector de modo
         selectorModo.addEventListener('change', async () => {
             actualizarSliderDinámico();
-
-            if (connectedCharacteristic) {
-                try {
-                    const comandoModo = `SET_MODE:${selectorModo.value}\n`;
-                    await connectedCharacteristic.writeValue(new TextEncoder().encode(comandoModo));
-                } catch (e) { console.warn("Error enviando modo al PIC24", e); }
-            }
+            await enviarComandoBinario();
         });
 
+        // Evento dinámico mientras arrastras el slider
         barraFijarVal.addEventListener('input', () => {
-            const modoActual = selectorModo.value;
-            const config = configModos[modoActual];
             const spanValor = document.getElementById('valorSliderText');
             if (spanValor) {
                 spanValor.innerText = barraFijarVal.value;
             }
         });
 
+        // Evento definitivo al soltar el slider
         barraFijarVal.addEventListener('change', async () => {
-            if (connectedCharacteristic) {
-                try {
-                    const comandoValor = `SET_VAL:${barraFijarVal.value}\n`;
-                    await connectedCharacteristic.writeValue(new TextEncoder().encode(comandoValor));
-                    console.log("Enviado consigna:", comandoValor.trim());
-                } catch (e) { console.warn("Error enviando consigna al PIC24", e); }
-            }
+            await enviarComandoBinario();
         });
 
         actualizarSliderDinámico();
     }
+
 
     // 5. CONTROL DEL MODAL DE CONFIGURACIÓN (CALIBRACIÓN)
     const botonConfig = document.getElementById('botonConfig');
