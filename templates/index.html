@@ -3,43 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>IV Curve Analyzer for FV</title>
-    <!-- Stylesheet (local preview) -->
+    <title>IV & PV Curve Analyzer for FV</title>
     <link rel="stylesheet" href="../static/css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Pequeños añadidos rápidos de CSS para que los nuevos elementos no se rompan */
+        .grid-2 { display: flex; gap: 10px; width: 100%; }
+        .grid-2 .btn { flex: 1; }
+        .control-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; width: 100%; text-align: left; }
+        .control-group label { color: #fff; font-size: 14px; font-weight: bold; }
+        .control-group select, .control-group input[type="range"] { width: 100%; padding: 10px; border-radius: 20px; background: #2c2c35; color: white; border: 1px solid #444; }
+        .readouts-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; width: 100%; }
+        .readout.mini { padding: 8px; font-size: 13px; text-align: center; }
+        .readout.mini .value { font-size: 16px; font-weight: bold; }
+    </style>
 </head>
 <body>
 
     <div class="container">
         <h2>IV Curve for PV Module monitor</h2>
+        
         <div class="controls">
-            <button id="botonConectar" class="btn">Connect Bluetooth</button>
-                        <button id="botonSolicitarIV" class="btn" disabled>Solicitar IV</button>
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <button id="botonLED" class="btn" disabled>Encender LED</button>
-                            <span id="ledIndicator" class="led-indicator off" aria-label="Estado LED"></span>
-                        </div>
-            <div class="readouts" aria-hidden="false" style="margin-top:6px;">
-                <div class="readout">
-                    <div class="label">Voltaje</div>
-                    <div class="value"><span id="voltageValue">-</span> V</div>
+            <div class="grid-2">
+                <button id="botonConectar" class="btn">Connect Bluetooth</button>
+                <button id="botonConfig" class="btn" style="background-color: #555;">Configuración</button>
+            </div>
+
+            <div class="control-group" style="margin-top: 10px;">
+                <label for="selectorModo">Modo de Control:</label>
+                <select id="selectorModo">
+                    <option value="MODO1">Modo 1: Manual</option>
+                    <option value="MODO2">Modo 2: Barrido IV</option>
+                    <option value="MODO3">Modo 3: MPPT Fijo</option>
+                    <option value="MODO4">Modo 4: Regulado</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label id="labelSlider" for="barraFijarVal">Valor de Consigna: <span id="valorSliderText">50</span>%</label>
+                <input type="range" id="barraFijarVal" min="0" max="100" value="50" disabled>
+            </div>
+
+            <div class="grid-2">
+                <button id="botonSolicitarIV" class="btn" disabled>Solicitar IV</button>
+                <div style="display:flex;align-items:center;gap:8px; flex: 1; justify-content: center;">
+                    <button id="botonLED" class="btn" style="width: 100%;" disabled>Encender LED</button>
+                    <span id="ledIndicator" class="led-indicator off" aria-label="Estado LED"></span>
                 </div>
-                <div class="readout">
-                    <div class="label">Corriente</div>
-                    <div class="value"><span id="currentValue">-</span> A</div>
+            </div>
+
+            <div class="readouts-4">
+                <div class="readout mini">
+                    <div class="label">Input V</div>
+                    <div class="value"><span id="inVoltValue">-</span> V</div>
+                </div>
+                <div class="readout mini">
+                    <div class="label">Input I</div>
+                    <div class="value"><span id="inCurrValue">-</span> A</div>
+                </div>
+                <div class="readout mini">
+                    <div class="label">Output V</div>
+                    <div class="value"><span id="outVoltValue">-</span> V</div>
+                </div>
+                <div class="readout mini">
+                    <div class="label">Output I</div>
+                    <div class="value"><span id="outCurrValue">-</span> A</div>
+                </div>
+            </div>
+
+            <div class="readouts-4">
+                <div class="readout mini">
+                    <div class="label">Input P</div>
+                    <div class="value"><span id="inPowerValue">-</span> W</div>
+                </div>
+                <div class="readout mini">
+                    <div class="label">Output P</div>
+                    <div class="value"><span id="outPowerValue">-</span> W</div>
+                </div>
+                <div class="readout mini">
+                    <div class="label">Efficiency</div>
+                    <div class="value"><span id="effValue">-</span> %</div>
+                </div>
+                <div class="readout mini">
+                    <div class="label">Duty Cycle</div>
+                    <div class="value"><span id="dutyValue">-</span> %</div>
                 </div>
             </div>
         </div>
         
-        <div class="canvas-container">
+        <div class="canvas-container" style="margin-top:20px;">
             <canvas id="graficoIV"></canvas>
         </div>
+
         <div class="chart-actions" style="margin-top:10px;">
             <button id="botonDescargarCSV" class="btn btn-csv">Descargar CSV</button>
         </div>
     </div>
 
     <script src="../static/js/app.js"></script>
-    <!-- Removed Flask template tag for static serving -->
 </body>
 </html>
