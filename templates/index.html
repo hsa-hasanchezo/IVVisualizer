@@ -7,15 +7,55 @@
     <link rel="stylesheet" href="../static/css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Pequeños añadidos rápidos de CSS para que los nuevos elementos no se rompan */
+        /* Base de estilos CSS adaptativa */
         .grid-2 { display: flex; gap: 10px; width: 100%; }
         .grid-2 .btn { flex: 1; }
+        
         .control-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; width: 100%; text-align: left; }
         .control-group label { color: #fff; font-size: 14px; font-weight: bold; }
-        .control-group select, .control-group input[type="range"] { width: 100%; padding: 10px; border-radius: 20px; background: #2c2c35; color: white; border: 1px solid #444; }
-        .readouts-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; width: 100%; }
-        .readout.mini { padding: 8px; font-size: 13px; text-align: center; }
-        .readout.mini .value { font-size: 16px; font-weight: bold; }
+        .control-group select, .control-group input[type="range"] { width: 100%; padding: 10px; border-radius: 20px; background: #2c2c35; color: white; border: 1px solid #444; font-size: 14px; }
+        
+        /* Contenedor de indicadores: Por defecto usa 4 columnas en PC */
+        .readouts-4 { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 10px; 
+            margin-top: 10px; 
+            width: 100%; 
+        }
+        .readout.mini { padding: 10px 5px; font-size: 13px; text-align: center; border-radius: 10px; }
+        .readout.mini .value { font-size: 16px; font-weight: bold; margin-top: 4px; }
+
+        /* --- RESPONSIVE DESIGN (Media Queries) --- */
+
+        /* Tablets y pantallas medianas (Menos de 768px) */
+        @media (max-width: 768px) {
+            .readouts-4 {
+                grid-template-columns: repeat(2, 1fr); /* Pasa a 2 columnas y 2 filas */
+                gap: 8px;
+            }
+            .readout.mini { padding: 8px 4px; }
+            .readout.mini .label { font-size: 12px; }
+            .readout.mini .value { font-size: 15px; }
+        }
+
+        /* Teléfonos móviles (Menos de 480px) */
+        @media (max-width: 480px) {
+            .grid-2 { 
+                flex-direction: column; /* Botón conectar y config se apilan uno sobre otro */
+                gap: 8px; 
+            }
+            .readouts-4 {
+                grid-template-columns: repeat(2, 1fr); /* Mantiene 2x2 pero ajusta textos */
+            }
+            .readout.mini .label { font-size: 11px; }
+            .readout.mini .value { font-size: 14px; }
+            
+            /* Evita que el contenedor de la gráfica colapse en pantallas muy pequeñas */
+            .canvas-container { height: 260px; } 
+            
+            h2 { font-size: 1.2rem; text-align: center; }
+        }
     </style>
 </head>
 <body>
