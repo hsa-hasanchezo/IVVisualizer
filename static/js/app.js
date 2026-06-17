@@ -271,7 +271,7 @@ if (!window.__ivvisualizer_initialized) {
         // Procesamiento matemático basado en tu mapa de control real
         if (modoActual === 'MODO1') {
             // MODO MPPT: Multiplica la potencia límite seleccionada (0-400W) por 40 para el PIC24
-            valorRaw16 = Math.round(valorSlider * 40);
+            valorRaw16 = Math.round(valorSlider * 84);
         } 
         else if (modoActual === 'MODO2') {
             // VOLTAGE MODE: Despejamos el valor RAW usando la calibración -> raw = (V - n) / m
