@@ -187,7 +187,8 @@ if (!window.__ivvisualizer_initialized) {
                 const iInRaw  = parseFloat(partes[1]) || 0;
                 const vOutRaw = parseFloat(partes[2]) || 0;
                 const iOutRaw = parseFloat(partes[3]) || 0;
-                const dutyVal = parseFloat(partes[4]) || 0;
+                const dutyRaw = parseFloat(partes[4]) || 0;
+                const dutyVal = (dutyRaw / 1200) * 100; // Convierte el rango 0-1200 a 0-100%
 
                 // 2. Aplicar fórmulas de calibración local (y = m * x + n)
                 const vInReal  = (vInRaw * calibracion.V_IN_m) + calibracion.V_IN_n;
@@ -207,14 +208,14 @@ if (!window.__ivvisualizer_initialized) {
                 }
 
                 // 4. Actualizar los Displays en el HTML (con toFixed para limitar decimales)
-                if (dispVin)  dispVin.innerText  = vInReal.toFixed(2) + " V";
-                if (dispIin)  dispIin.innerText  = iInReal.toFixed(2) + " A";
-                if (dispPin)  dispPin.innerText  = pInReal.toFixed(1) + " W";
-                if (dispVout) dispVout.innerText = vOutReal.toFixed(2) + " V";
-                if (dispIout) dispIout.innerText = iOutReal.toFixed(2) + " A";
-                if (dispPout) dispPout.innerText = pOutReal.toFixed(1) + " W";
-                if (dispDuty) dispDuty.innerText = dutyVal.toFixed(0) + " %";
-                if (dispEff)  dispEff.innerText  = eficiencia.toFixed(1) + " %";
+                if (dispVin)  dispVin.innerText  = vInReal.toFixed(2);
+                if (dispIin)  dispIin.innerText  = iInReal.toFixed(2);
+                if (dispPin)  dispPin.innerText  = pInReal.toFixed(1);
+                if (dispVout) dispVout.innerText = vOutReal.toFixed(2);
+                if (dispIout) dispIout.innerText = iOutReal.toFixed(2);
+                if (dispPout) dispPout.innerText = pOutReal.toFixed(1);
+                if (dispDuty) dispDuty.innerText = dutyVal.toFixed(0);
+                if (dispEff)  dispEff.innerText  = eficiencia.toFixed(1);
 
                 // 5. Alimentar la Gráfica IV y PV en tiempo real (Usamos voltaje de entrada como eje X)
                 puntosBufferIV.push({ x: vInReal, y: iInReal });
