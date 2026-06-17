@@ -217,7 +217,7 @@ if (!window.__ivvisualizer_initialized) {
                     // 4. Actualizar los Displays en el HTML
                     if (dispVin)  dispVin.innerText  = vInReal.toFixed(1);
                     if (dispIin)  dispIin.innerText  = iInReal.toFixed(2);
-                    if (dispPin)  dispPin.innerText  = pInReal.toFixed(0);
+                    if (dispPin)  dispPin.innerText  = pInReal.toFixed(1);
                     if (dispVout) dispVout.innerText = vOutReal.toFixed(1);
                     if (dispIout) dispIout.innerText = iOutReal.toFixed(2);
                     if (dispPout) dispPout.innerText = pOutReal.toFixed(1);
