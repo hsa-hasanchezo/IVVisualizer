@@ -250,7 +250,8 @@ if (!window.__ivvisualizer_initialized) {
 
     // 4. LÓGICA DINÁMICA DEL SLIDER Y COMANDOS BINARIOS EN ESPAÑOL RECONFIGURADOS
     const configModos = {
-        MODO1: { habilitado: false, min: 0,  max: 100, step: 1,  unidad: "%",  texto: "MPPT Automático",             byteModo: 0xB1 },
+        // MODO MPPT: Ahora habilitado de 0 a 400W para limitar la potencia máxima de entrada
+        MODO1: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "MPPT (Max Power Limit):",     byteModo: 0xB1 },
         MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):",   byteModo: 0xB2 },
         MODO3: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty Cycle):",      byteModo: 0xB3 },
         MODO4: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "Setpoint (Input Power):",     byteModo: 0xB4 }
@@ -269,7 +270,8 @@ if (!window.__ivvisualizer_initialized) {
 
         // Procesamiento matemático basado en tu mapa de control real
         if (modoActual === 'MODO1') {
-            valorRaw16 = 0;
+            // MODO MPPT: Multiplica la potencia límite seleccionada (0-400W) por 40 para el PIC24
+            valorRaw16 = Math.round(valorSlider * 40);
         } 
         else if (modoActual === 'MODO2') {
             // VOLTAGE MODE: Despejamos el valor RAW usando la calibración -> raw = (V - n) / m
@@ -313,14 +315,11 @@ if (!window.__ivvisualizer_initialized) {
         barraFijarVal.max = config.max;
         barraFijarVal.step = config.step;
         
-        // Forzamos que se mantenga el valor mínimo inicial del modo seleccionado (por ejemplo, 0%)
+        // Forzamos que se mantenga el valor mínimo inicial del modo seleccionado (0W para MPPT, 0% para Duty, etc.)
         barraFijarVal.value = config.min;
 
-        if (config.habilitado) {
-            actualizarTextoSlider(config.texto, config.min, config.unidad);
-        } else {
-            labelSlider.innerHTML = `<strong>${config.texto}</strong>`;
-        }
+        // Como ahora todos los modos están habilitados, siempre actualizamos el texto de forma dinámica
+        actualizarTextoSlider(config.texto, config.min, config.unidad);
     }
 
     function actualizarTextoSlider(textoLabel, valor, unidad) {
