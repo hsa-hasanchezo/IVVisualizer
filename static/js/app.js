@@ -254,7 +254,6 @@ if (!window.__ivvisualizer_initialized) {
         MODO1: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "MPPT (Max Power Limit):",     byteModo: 0xB1 },
         MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):",   byteModo: 0xB2 },
         MODO3: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty Cycle):",      byteModo: 0xB3 },
-        MODO4: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "Setpoint (Input Power):",     byteModo: 0xB4 }
     };
 
     // Calcula el valor RAW de 16 bits según tu mapa de firmware y envía la trama [0xAA, Modo, MSB, LSB]
@@ -280,10 +279,6 @@ if (!window.__ivvisualizer_initialized) {
         else if (modoActual === 'MODO3') {
             // DUTY CYCLE MODE: Convertimos el % del slider al rango de trabajo del PIC24 (0 - 1200)
             valorRaw16 = Math.round(valorSlider * 12);
-        }
-        else if (modoActual === 'MODO4') {
-            // POWER MODE: Enviamos el valor entero de vatios directo (0 - 400)
-            valorRaw16 = Math.round(valorSlider);
         }
 
         // Protección contra desbordamientos (Entero de 16 bits sin signo: 0 a 65535)
