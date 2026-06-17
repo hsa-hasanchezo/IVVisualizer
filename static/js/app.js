@@ -12,11 +12,11 @@ if (!window.__ivvisualizer_initialized) {
     if (!canvasEl) return; // nada que hacer si no existe el canvas
     const ctx = canvasEl.getContext('2d');
 
-    const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-    const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+    //const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+    //const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
-    // const SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";          // Nuevos ID para modulo HM-10
-    // const CHARACTERISTIC_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";   // Nuevos ID para modulo HM-10
+    const SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";          // Nuevos ID para modulo HM-10
+    const CHARACTERISTIC_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";   // Nuevos ID para modulo HM-10
 
     // Detectar disponibilidad de la API Web Bluetooth
     const hasWebBluetooth = !!(navigator && navigator.bluetooth && typeof navigator.bluetooth.requestDevice === 'function');
