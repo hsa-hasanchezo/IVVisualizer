@@ -1,3 +1,5 @@
+// Guarda contra inicialización doble y espera al DOM
+if (!window.__ivvisualizer_initialized) {
   window.__ivvisualizer_initialized = true;
 
   // A) VARIABLES GLOBALES DE CALIBRACIÓN (Almacenadas EXCLUSIVAMENTE en la Web)
