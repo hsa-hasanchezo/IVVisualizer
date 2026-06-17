@@ -19,7 +19,7 @@ if (!window.__ivvisualizer_initialized) {
     const labelSlider = document.getElementById('labelSlider');
     const canvasEl = document.getElementById('graficoIV');
     
-    // Enlaces para los Displays de Telemetría (Asegúrate de que coincidan los IDs en tu HTML)
+    // Enlaces para los Displays de Telemetría
     const dispVin = document.getElementById('dispVin');
     const dispIin = document.getElementById('dispIin');
     const dispPin = document.getElementById('dispPin');
@@ -126,10 +126,11 @@ if (!window.__ivvisualizer_initialized) {
 
     const flushTimer = setInterval(flushBufferToChart, FLUSH_INTERVAL_MS);
 
-    // Variables de control Bluetooth y Loop de Telemetría
+    // Variables de control Bluetooth, Buffers y Loop de Telemetría
     let connectedCharacteristic = null;
     let connectedDevice = null;
-    let loopTelemetria = null; // Guardará el ID del setInterval del polling
+    let loopTelemetria = null; 
+    let bluetoothBufferTexto = ""; // Buffer dinámico esencial para evitar cortes en strings largos (>30% Duty)
 
     // 3. LÓGICA DE CONEXIÓN BLUETOOTH + PROCESAMIENTO DE DATOS CRÚDOS
     if (botonConectar && hasWebBluetooth) {
@@ -162,57 +163,71 @@ if (!window.__ivvisualizer_initialized) {
 
           await characteristic.startNotifications();
           
-          // RECEPTOR Y PROCESADOR MATEMÁTICO DE TELEMETRÍA
+          // RECEPTOR CON BUFFER ANTI-FRAGMENTACIÓN INTEGRADO
           characteristic.addEventListener('characteristicvaluechanged', (event) => {
             const value = event.target.value;
-            let textoDecodificado = '';
-            try { textoDecodificado = new TextDecoder('utf-8').decode(value); } catch (e) { return; }
-            textoDecodificado = (textoDecodificado || '').trim();
+            let fragmentoDecodificado = '';
+            try { 
+                fragmentoDecodificado = new TextDecoder('utf-8').decode(value); 
+            } catch (e) { return; }
+            
+            // Acumular fragmento en el buffer global
+            bluetoothBufferTexto += fragmentoDecodificado;
 
-            if (!textoDecodificado) return;
-
-            // Esperamos formato: V_IN_raw,I_IN_raw,V_OUT_raw,I_OUT_raw,Duty
-            const partes = textoDecodificado.split(',');
-            if (partes.length >= 5) {
-                // 1. Extraer los datos crudos (raw) enviados por el PIC24
-                const vInRaw  = parseFloat(partes[0]) || 0;
-                const iInRaw  = parseFloat(partes[1]) || 0;
-                const vOutRaw = parseFloat(partes[2]) || 0;
-                const iOutRaw = parseFloat(partes[3]) || 0;
-                const dutyRaw = parseFloat(partes[4]) || 0;
-                const dutyVal = (dutyRaw / 1200) * 100; // Convierte el rango 0-1200 a 0-100%
-
-                // 2. Aplicar fórmulas de calibración local (y = m * x + n)
-                const vInReal  = (vInRaw * calibracion.V_IN_m) + calibracion.V_IN_n;
-                const iInReal  = (iInRaw * calibracion.I_IN_m) + calibracion.I_IN_n;
-                const vOutReal = (vOutRaw * calibracion.V_OUT_m) + calibracion.V_OUT_n;
-                const iOutReal = (iOutRaw * calibracion.I_OUT_m) + calibracion.I_OUT_n;
-
-                // 3. Cálculos de Potencia y Eficiencia
-                const pInReal  = vInReal * iInReal;
-                const pOutReal = vOutReal * iOutReal;
+            // Procesamos únicamente si detectamos el terminador de línea enviado por el PIC
+            if (bluetoothBufferTexto.includes('\n')) {
+                const lineas = bluetoothBufferTexto.split('\n');
                 
-                let eficiencia = 0;
-                if (pInReal > 0.1) { // Evitamos divisiones por cero o ruido flotante
-                    eficiencia = (pOutReal / pInReal) * 100;
-                    if (eficiencia > 100) eficiencia = 100; // Capar picos irreales por transitorios
-                    if (eficiencia < 0) eficiencia = 0;
-                }
+                // Mantenemos cualquier residuo incompleto para el siguiente evento de recepción
+                bluetoothBufferTexto = lineas.pop();
 
-                // 4. Actualizar los Displays en el HTML (con toFixed para limitar decimales)
-                if (dispVin)  dispVin.innerText  = vInReal.toFixed(1);
-                if (dispIin)  dispIin.innerText  = iInReal.toFixed(2);
-                if (dispPin)  dispPin.innerText  = pInReal.toFixed(0);
-                if (dispVout) dispVout.innerText = vOutReal.toFixed(1);
-                if (dispIout) dispIout.innerText = iOutReal.toFixed(2);
-                if (dispPout) dispPout.innerText = pOutReal.toFixed(0);
-                if (dispDuty) dispDuty.innerText = dutyVal.toFixed(1);
-                if (dispEff)  dispEff.innerText  = eficiencia.toFixed(1);
+                const lineaCompleta = lineas[0].trim();
+                if (!lineaCompleta) return;
+
+                // Esperamos formato: V_IN_raw,I_IN_raw,V_OUT_raw,I_OUT_raw,Duty
+                const partes = lineaCompleta.split(',');
+                if (partes.length >= 5) {
+                    // 1. Extraer los datos crudos (raw) enviados por el PIC24
+                    const vInRaw  = parseFloat(partes[0]) || 0;
+                    const iInRaw  = parseFloat(partes[1]) || 0;
+                    const vOutRaw = parseFloat(partes[2]) || 0;
+                    const iOutRaw = parseFloat(partes[3]) || 0;
+                    const dutyRaw = parseFloat(partes[4]) || 0;
+                    
+                    // Cálculo de Duty exacto al 100% libre de cortes de caracteres
+                    const dutyVal = (dutyRaw / 1200) * 100; 
+
+                    // 2. Aplicar fórmulas de calibración local (y = m * x + n)
+                    const vInReal  = (vInRaw * calibracion.V_IN_m) + calibracion.V_IN_n;
+                    const iInReal  = (iInRaw * calibracion.I_IN_m) + calibracion.I_IN_n;
+                    const vOutReal = (vOutRaw * calibracion.V_OUT_m) + calibracion.V_OUT_n;
+                    const iOutReal = (iOutRaw * calibracion.I_OUT_m) + calibracion.I_OUT_n;
+
+                    // 3. Cálculos de Potencia y Eficiencia
+                    const pInReal  = vInReal * iInReal;
+                    const pOutReal = vOutReal * iOutReal;
+                    
+                    let eficiencia = 0;
+                    if (pInReal > 0.1) {
+                        eficiencia = (pOutReal / pInReal) * 100;
+                        if (eficiencia > 100) eficiencia = 100; 
+                        if (eficiencia < 0) eficiencia = 0;
+                    }
+
+                    // 4. Actualizar los Displays en el HTML
+                    if (dispVin)  dispVin.innerText  = vInReal.toFixed(2);
+                    if (dispIin)  dispIin.innerText  = iInReal.toFixed(2);
+                    if (dispPin)  dispPin.innerText  = pInReal.toFixed(1);
+                    if (dispVout) dispVout.innerText = vOutReal.toFixed(2);
+                    if (dispIout) dispIout.innerText = iOutReal.toFixed(2);
+                    if (dispPout) dispPout.innerText = pOutReal.toFixed(1);
+                    if (dispDuty) dispDuty.innerText = dutyVal.toFixed(0);
+                    if (dispEff)  dispEff.innerText  = eficiencia.toFixed(1);
+                }
             }
           });
 
-          // DISPARADOR PERIÓDICO (Ejecución cada 250ms para un refresco fluido de 4Hz)
-          // Envía de forma exacta los bytes binarios solicitados: [0xAA, 0xA6, 0x00, 0x00]
+          // DISPARADOR PERIÓDICO (Polling a 4Hz) -> Envía [0xAA, 0xA6, 0x00, 0x00]
           loopTelemetria = setInterval(async () => {
               if (connectedCharacteristic) {
                   try {
@@ -233,7 +248,7 @@ if (!window.__ivvisualizer_initialized) {
       });
     }
 
-    // 4. LÓGICA DINÁMICA DEL SLIDER
+    // 4. LÓGICA DINÁMICA DEL SLIDER Y COMANDOS BINARIOS EN ESPAÑOL RECONFIGURADOS
     const configModos = {
         MODO1: { habilitado: false, min: 0,  max: 100, step: 1,  unidad: "%",  texto: "MPPT Automático",             byteModo: 0xB1 },
         MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):",   byteModo: 0xB2 },
@@ -254,7 +269,6 @@ if (!window.__ivvisualizer_initialized) {
 
         // Procesamiento matemático basado en tu mapa de control real
         if (modoActual === 'MODO1') {
-            // MODO MPPT: Control automático, la consigna es irrelevante (enviamos 0)
             valorRaw16 = 0;
         } 
         else if (modoActual === 'MODO2') {
@@ -298,12 +312,13 @@ if (!window.__ivvisualizer_initialized) {
         barraFijarVal.min = config.min;
         barraFijarVal.max = config.max;
         barraFijarVal.step = config.step;
+        
+        // Forzamos que se mantenga el valor mínimo inicial del modo seleccionado (por ejemplo, 0%)
         barraFijarVal.value = config.min;
 
         if (config.habilitado) {
             actualizarTextoSlider(config.texto, config.min, config.unidad);
         } else {
-            // Si es MPPT, ocultamos el valor numérico del slider ya que no aplica
             labelSlider.innerHTML = `<strong>${config.texto}</strong>`;
         }
     }
@@ -332,9 +347,9 @@ if (!window.__ivvisualizer_initialized) {
             await enviarComandoBinario();
         });
 
+        // Llama a la inicialización dinámica basada en el "selected" asignado por defecto en el HTML
         actualizarSliderDinámico();
     }
-
 
     // 5. CONTROL DEL MODAL DE CONFIGURACIÓN (CALIBRACIÓN)
     const botonConfig = document.getElementById('botonConfig');
@@ -376,4 +391,4 @@ if (!window.__ivvisualizer_initialized) {
     }
 
   });
-}     
+}    
