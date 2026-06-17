@@ -216,13 +216,13 @@ if (!window.__ivvisualizer_initialized) {
 
                     // 4. Actualizar los Displays en el HTML
                     if (dispVin)  dispVin.innerText  = vInReal.toFixed(1);
-                    if (dispIin)  dispIin.innerText  = iInReal.toFixed(2);
-                    if (dispPin)  dispPin.innerText  = pInReal.toFixed(1);
+                    if (dispIin)  dispIin.innerText  = iInReal.toFixed(1);
+                    if (dispPin)  dispPin.innerText  = pInReal.toFixed(0);
                     if (dispVout) dispVout.innerText = vOutReal.toFixed(1);
-                    if (dispIout) dispIout.innerText = iOutReal.toFixed(2);
-                    if (dispPout) dispPout.innerText = pOutReal.toFixed(1);
+                    if (dispIout) dispIout.innerText = iOutReal.toFixed(1);
+                    if (dispPout) dispPout.innerText = pOutReal.toFixed(0);
                     if (dispDuty) dispDuty.innerText = dutyVal.toFixed(1);
-                    if (dispEff)  dispEff.innerText  = eficiencia.toFixed(1);
+                    if (dispEff)  dispEff.innerText  = eficiencia.toFixed(0);
                 }
             }
           });
