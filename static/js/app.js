@@ -1,10 +1,11 @@
-if (!window.__ivvisualizer_initialized) {
   window.__ivvisualizer_initialized = true;
 
-  // A) VARIABLES GLOBALES DE CALIBRACIÓN (Definidas al inicio para estar disponibles siempre)
+  // A) VARIABLES GLOBALES DE CALIBRACIÓN (Almacenadas EXCLUSIVAMENTE en la Web)
   let calibracion = {
-      c1: 1.000, c2: 1.000, c3: 1.000, c4: 1.000,
-      c5: 1.000, c6: 1.000, c7: 1.000, c8: 1.000
+      V_IN_m: 0.01533,  V_IN_n: 0.038,  
+      I_IN_m: 0.00389,  I_IN_n: 0.009,
+      V_OUT_m: -0.01650, V_OUT_n: 64.079, 
+      I_OUT_m: 0.00386, I_OUT_n: 0.009
   };
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -50,7 +51,7 @@ if (!window.__ivvisualizer_initialized) {
                     borderWidth: 3,
                     tension: 0.3,
                     pointRadius: 2,
-                    yAxisID: 'y' // Vinculado al eje izquierdo (Corriente)
+                    yAxisID: 'y'
                 },
                 {
                     label: 'PV-Curve (Power)',
@@ -60,7 +61,7 @@ if (!window.__ivvisualizer_initialized) {
                     borderWidth: 3,
                     tension: 0.3,
                     pointRadius: 2,
-                    yAxisID: 'y1' // Vinculado al eje derecho (Potencia)
+                    yAxisID: 'y1'
                 }
             ]
         },
@@ -102,7 +103,7 @@ if (!window.__ivvisualizer_initialized) {
         }
     });
 
-    // Buffers para hilos de datos entrantes (se procesarán juntos)
+    // Buffers para hilos de datos entrantes
     const puntosBufferIV = [];
     const puntosBufferPV = [];
     const MAX_POINTS = 2000;
@@ -126,7 +127,7 @@ if (!window.__ivvisualizer_initialized) {
     let connectedCharacteristic = null;
     let connectedDevice = null;
 
-    // 3. LÓGICA DE CONEXIÓN BLUETOOTH (DSD TECH / HM-10)
+    // 3. LÓGICA DE CONEXIÓN BLUETOOTH
     if (botonConectar && hasWebBluetooth) {
       botonConectar.addEventListener('click', async () => {
         try {
@@ -172,7 +173,7 @@ if (!window.__ivvisualizer_initialized) {
       });
     }
 
-    // 4. LÓGICA DINÁMICA DEL SLIDER (Modos, rangos y unidades)
+    // 4. LÓGICA DINÁMICA DEL SLIDER (Control local y comandos permitidos)
     const configModos = {
         MODO1: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty):" },
         MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):" },
@@ -233,53 +234,44 @@ if (!window.__ivvisualizer_initialized) {
         actualizarSliderDinámico();
     }
 
-    // 5. CONTROL DEL MODAL DE CONFIGURACIÓN (CALIBRACIÓN)
+    // 5. CONTROL DEL MODAL DE CONFIGURACIÓN (Mantenido 100% aislado del Bluetooth)
     const botonConfig = document.getElementById('botonConfig');
     const modalConfig = document.getElementById('modalConfig');
     const btnGuardarCal = document.getElementById('btnGuardarCal');
     const btnCancelarCal = document.getElementById('btnCancelarCal');
 
     if (botonConfig && modalConfig) {
-        // Abrir ventana y cargar en los campos numéricos los valores actuales del objeto 'calibracion'
         botonConfig.addEventListener('click', () => {
-            document.getElementById('cal_c1').value = calibracion.c1;
-            document.getElementById('cal_c2').value = calibracion.c2;
-            document.getElementById('cal_c3').value = calibracion.c3;
-            document.getElementById('cal_c4').value = calibracion.c4;
-            document.getElementById('cal_c5').value = calibracion.c5;
-            document.getElementById('cal_c6').value = calibracion.c6;
-            document.getElementById('cal_c7').value = calibracion.c7;
-            document.getElementById('cal_c8').value = calibracion.c8;
+            document.getElementById('cal_c1').value = calibracion.V_IN_m;
+            document.getElementById('cal_c2').value = calibracion.V_IN_n;
+            document.getElementById('cal_c3').value = calibracion.I_IN_m;
+            document.getElementById('cal_c4').value = calibracion.I_IN_n;
+            document.getElementById('cal_c5').value = calibracion.V_OUT_m;
+            document.getElementById('cal_c6').value = calibracion.V_OUT_n;
+            document.getElementById('cal_c7').value = calibracion.I_OUT_m;
+            document.getElementById('cal_c8').value = calibracion.I_OUT_n;
             
-            modalConfig.style.display = 'flex'; // Despliega el modal visualmente
+            modalConfig.style.display = 'flex';
         });
 
-        // Botón Cancelar: Cierra la ventana descartando cualquier edición
         btnCancelarCal.addEventListener('click', () => {
             modalConfig.style.display = 'none';
         });
 
-        // Botón Guardar: Salva los nuevos coeficientes en memoria
-        btnGuardarCal.addEventListener('click', async () => {
-            calibracion.c1 = parseFloat(document.getElementById('cal_c1').value) || 1.0;
-            calibracion.c2 = parseFloat(document.getElementById('cal_c2').value) || 1.0;
-            calibracion.c3 = parseFloat(document.getElementById('cal_c3').value) || 1.0;
-            calibracion.c4 = parseFloat(document.getElementById('cal_c4').value) || 1.0;
-            calibracion.c5 = parseFloat(document.getElementById('cal_c5').value) || 1.0;
-            calibracion.c6 = parseFloat(document.getElementById('cal_c6').value) || 1.0;
-            calibracion.c7 = parseFloat(document.getElementById('cal_c7').value) || 1.0;
-            calibracion.c8 = parseFloat(document.getElementById('cal_c8').value) || 1.0;
+        btnGuardarCal.addEventListener('click', () => {
+            // Se actualizan las variables locales en la web para cálculos matemáticos posteriores
+            calibracion.V_IN_m = parseFloat(document.getElementById('cal_c1').value) || 0.0;
+            calibracion.V_IN_n = parseFloat(document.getElementById('cal_c2').value) || 0.0;
+            calibracion.I_IN_m = parseFloat(document.getElementById('cal_c3').value) || 0.0;
+            calibracion.I_IN_n = parseFloat(document.getElementById('cal_c4').value) || 0.0;
+            calibracion.V_OUT_m = parseFloat(document.getElementById('cal_c5').value) || 0.0;
+            calibracion.V_OUT_n = parseFloat(document.getElementById('cal_c6').value) || 0.0;
+            calibracion.I_OUT_m = parseFloat(document.getElementById('cal_c7').value) || 0.0;
+            calibracion.I_OUT_n = parseFloat(document.getElementById('cal_c8').value) || 0.0;
 
-            console.log("Nuevas constantes guardadas localmente:", calibracion);
-            modalConfig.style.display = 'none'; // Esconde el menú
-
-            // Envía la cadena de calibración por BLE si está el hardware activo
-            if (connectedCharacteristic) {
-                try {
-                    const cmdCal = `SET_CAL:${calibracion.c1},${calibracion.c2},${calibracion.c3},${calibracion.c4}\n`;
-                    await connectedCharacteristic.writeValue(new TextEncoder().encode(cmdCal));
-                } catch(e) { console.warn("No se pudieron enviar las constantes al PIC"); }
-            }
+            console.log("Constantes actualizadas con éxito en memoria web:", calibracion);
+            modalConfig.style.display = 'none';
+            // Aquí NO hay funciones writeValue. El HM-10 no se entera de este cambio.
         });
     }
 
