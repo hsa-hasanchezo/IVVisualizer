@@ -137,5 +137,78 @@
     </div>
 
     <script src="../static/js/app.js"></script>
+
+    <div id="modalConfig" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h3>Calibration Constants</h3>
+        <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Ajusta los factores de calibración para los sensores.</p>
+        
+        <div class="modal-grid">
+            <div class="input-field">
+                <label>Const 1 (In V):</label>
+                <input type="number" id="cal_c1" step="0.001" value="1.000">
+            </div>
+            <div class="input-field">
+                <label>Const 2 (In I):</label>
+                <input type="number" id="cal_c2" step="0.001" value="1.000">
+            </div>
+            <div class="input-field">
+                <label>Const 3 (Out V):</label>
+                <input type="number" id="cal_c3" step="0.001" value="1.000">
+            </div>
+            <div class="input-field">
+                <label>Const 4 (Out I):</label>
+                <input type="number" id="cal_c4" step="0.001" value="1.000">
+            </div>
+            <div class="input-field">
+                <label>Const 5:</label>
+                <input type="number" id="cal_c5" step="0.001" value="1.000">
+            </div>
+            <div class="input-field">
+                <label>Const 6:</label>
+                <input type="number" id="cal_c6" step="0.001" value="1.000">
+            </div>
+            <div class="input-field">
+                <label>Const 7:</label>
+                <input type="number" id="cal_c7" step="0.001" value="1.000">
+            </div>
+            <div class="input-field">
+                <label>Const 8:</label>
+                <input type="number" id="cal_c8" step="0.001" value="1.000">
+            </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+            <button id="btnGuardarCal" class="btn" style="background-color: #00e676;">Save</button>
+            <button id="btnCancelarCal" class="btn" style="background-color: #cfd8dc; color: #333;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-color: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal-content {
+        background-color: #1e1e24; border: 1px solid #444; border-radius: 15px;
+        padding: 20px; width: 90%; max-width: 500px; color: white; text-align: left;
+        box-shadow: 0px 4px 20px rgba(0,0,0,0.5);
+    }
+    .modal-content h3 { margin-top: 0; color: #ffca28; }
+    .modal-grid {
+        display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    }
+    .input-field { display: flex; flex-direction: column; gap: 4px; }
+    .input-field label { font-size: 12px; color: #aaa; }
+    .input-field input {
+        padding: 8px; background: #2c2c35; border: 1px solid #555;
+        border-radius: 8px; color: white; font-size: 14px;
+    }
+    /* En móviles se pone en 1 sola columna para que no se aplaste */
+    @media (max-width: 480px) {
+        .modal-grid { grid-template-columns: 1fr; }
+    }
+</style>
 </body>
 </html>
