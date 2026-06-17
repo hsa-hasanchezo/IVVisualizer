@@ -15,6 +15,9 @@ if (!window.__ivvisualizer_initialized) {
     const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
     const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
+    const SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";          // Nuevos ID para modulo HM-10
+    const CHARACTERISTIC_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";   // Nuevos ID para modulo HM-10
+
     // Detectar disponibilidad de la API Web Bluetooth
     const hasWebBluetooth = !!(navigator && navigator.bluetooth && typeof navigator.bluetooth.requestDevice === 'function');
     if (!hasWebBluetooth) {
@@ -125,7 +128,7 @@ if (!window.__ivvisualizer_initialized) {
             return;
           }
 
-          const device = await navigator.bluetooth.requestDevice({ filters: [{ name: 'ESP32_Web_BLE' }], optionalServices: [SERVICE_UUID] });
+          const device = await navigator.bluetooth.requestDevice({filters: [{ services: [SERVICE_UUID] }] });
 
           const server = await device.gatt.connect();
           const service = await server.getPrimaryService(SERVICE_UUID);
