@@ -1,6 +1,11 @@
-// Guarda contra inicialización doble y espera al DOM
 if (!window.__ivvisualizer_initialized) {
   window.__ivvisualizer_initialized = true;
+
+  // A) VARIABLES GLOBALES DE CALIBRACIÓN (Definidas al inicio para estar disponibles siempre)
+  let calibracion = {
+      c1: 1.000, c2: 1.000, c3: 1.000, c4: 1.000,
+      c5: 1.000, c6: 1.000, c7: 1.000, c8: 1.000
+  };
 
   document.addEventListener('DOMContentLoaded', () => {
     // 1. ENLACES AL DOM (HTML)
@@ -85,10 +90,10 @@ if (!window.__ivvisualizer_initialized) {
                     type: 'linear',
                     position: 'right',
                     title: { display: true, text: 'Power (W)', color: '#fff' }, 
-                    grid: { drawOnChartArea: false }, // Evita que se crucen las líneas de cuadrícula
+                    grid: { drawOnChartArea: false }, 
                     ticks: { color: '#fff' }, 
                     min: 0, 
-                    max: 400 // Escala adaptada a los 400W máximos del sistema
+                    max: 400 
                 }
             },
             plugins: {
@@ -125,7 +130,6 @@ if (!window.__ivvisualizer_initialized) {
     if (botonConectar && hasWebBluetooth) {
       botonConectar.addEventListener('click', async () => {
         try {
-          // Desconexión si ya está conectado
           if (connectedDevice && connectedDevice.gatt && connectedDevice.gatt.connected) {
             try { connectedDevice.gatt.disconnect(); } catch (e) {}
             connectedDevice = null; connectedCharacteristic = null;
@@ -134,7 +138,6 @@ if (!window.__ivvisualizer_initialized) {
             return;
           }
 
-          // Filtro específico para encontrar el módulo "DSD TECH"
           const device = await navigator.bluetooth.requestDevice({ 
             filters: [{ namePrefix: 'DSD TECH' }], 
             optionalServices: [SERVICE_UUID] 
@@ -150,7 +153,6 @@ if (!window.__ivvisualizer_initialized) {
           botonConectar.innerText = "⚡ Connected (click to disconnect)";
           botonConectar.style.background = "#2196f3";
 
-          // Activar las notificaciones de la UART
           await characteristic.startNotifications();
           
           characteristic.addEventListener('characteristicvaluechanged', (event) => {
@@ -159,7 +161,6 @@ if (!window.__ivvisualizer_initialized) {
             try { textoDecodificado = new TextDecoder('utf-8').decode(value); } catch (e) { return; }
             textoDecodificado = (textoDecodificado || '').trim();
 
-            // [Aquí configuraremos el procesador de tramas serie del PIC24 en el siguiente paso]
             console.log("Dato recibido de la UART:", textoDecodificado);
           });
 
@@ -172,12 +173,11 @@ if (!window.__ivvisualizer_initialized) {
     }
 
     // 4. LÓGICA DINÁMICA DEL SLIDER (Modos, rangos y unidades)
-    // Definimos la configuración para cada tipo de modo
     const configModos = {
         MODO1: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty):" },
         MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):" },
         MODO3: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "Setpoint (Input Power):" },
-        MODO4: { habilitado: false, min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint:" } // MPPT Bloqueado
+        MODO4: { habilitado: false, min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint:" }
     };
 
     function actualizarSliderDinámico() {
@@ -186,18 +186,12 @@ if (!window.__ivvisualizer_initialized) {
 
         if (!config) return;
 
-        // 1. Habilitar o deshabilitar
         barraFijarVal.disabled = !config.habilitado;
-
-        // 2. Aplicar límites físicos y pasos
         barraFijarVal.min = config.min;
         barraFijarVal.max = config.max;
         barraFijarVal.step = config.step;
-
-        // 3. Forzar el valor al mínimo del rango para evitar desbordamientos visuales al cambiar
         barraFijarVal.value = config.min;
 
-        // 4. Actualizar textos en pantalla
         actualizarTextoSlider(config.texto, config.min, config.unidad);
     }
 
@@ -205,12 +199,10 @@ if (!window.__ivvisualizer_initialized) {
         labelSlider.innerHTML = `${textoLabel} <span id="valorSliderText">${valor}</span>${unidad}`;
     }
 
-    // Escuchar el cambio en el desplegable de modos
     if (selectorModo && barraFijarVal) {
         selectorModo.addEventListener('change', async () => {
             actualizarSliderDinámico();
 
-            // Opcional: Avisar inmediatamente al PIC24 del cambio de modo
             if (connectedCharacteristic) {
                 try {
                     const comandoModo = `SET_MODE:${selectorModo.value}\n`;
@@ -219,7 +211,6 @@ if (!window.__ivvisualizer_initialized) {
             }
         });
 
-        // Escuchar el movimiento en tiempo real del slider (mientras arrastras)
         barraFijarVal.addEventListener('input', () => {
             const modoActual = selectorModo.value;
             const config = configModos[modoActual];
@@ -229,7 +220,6 @@ if (!window.__ivvisualizer_initialized) {
             }
         });
 
-        // Escuchar cuando el usuario suelta el slider (envío definitivo del valor por Bluetooth)
         barraFijarVal.addEventListener('change', async () => {
             if (connectedCharacteristic) {
                 try {
@@ -240,8 +230,58 @@ if (!window.__ivvisualizer_initialized) {
             }
         });
 
-        // Ejecutar una vez al cargar la web para inicializar el estado del slider
         actualizarSliderDinámico();
     }
+
+    // 5. CONTROL DEL MODAL DE CONFIGURACIÓN (CALIBRACIÓN)
+    const botonConfig = document.getElementById('botonConfig');
+    const modalConfig = document.getElementById('modalConfig');
+    const btnGuardarCal = document.getElementById('btnGuardarCal');
+    const btnCancelarCal = document.getElementById('btnCancelarCal');
+
+    if (botonConfig && modalConfig) {
+        // Abrir ventana y cargar en los campos numéricos los valores actuales del objeto 'calibracion'
+        botonConfig.addEventListener('click', () => {
+            document.getElementById('cal_c1').value = calibracion.c1;
+            document.getElementById('cal_c2').value = calibracion.c2;
+            document.getElementById('cal_c3').value = calibracion.c3;
+            document.getElementById('cal_c4').value = calibracion.c4;
+            document.getElementById('cal_c5').value = calibracion.c5;
+            document.getElementById('cal_c6').value = calibracion.c6;
+            document.getElementById('cal_c7').value = calibracion.c7;
+            document.getElementById('cal_c8').value = calibracion.c8;
+            
+            modalConfig.style.display = 'flex'; // Despliega el modal visualmente
+        });
+
+        // Botón Cancelar: Cierra la ventana descartando cualquier edición
+        btnCancelarCal.addEventListener('click', () => {
+            modalConfig.style.display = 'none';
+        });
+
+        // Botón Guardar: Salva los nuevos coeficientes en memoria
+        btnGuardarCal.addEventListener('click', async () => {
+            calibracion.c1 = parseFloat(document.getElementById('cal_c1').value) || 1.0;
+            calibracion.c2 = parseFloat(document.getElementById('cal_c2').value) || 1.0;
+            calibracion.c3 = parseFloat(document.getElementById('cal_c3').value) || 1.0;
+            calibracion.c4 = parseFloat(document.getElementById('cal_c4').value) || 1.0;
+            calibracion.c5 = parseFloat(document.getElementById('cal_c5').value) || 1.0;
+            calibracion.c6 = parseFloat(document.getElementById('cal_c6').value) || 1.0;
+            calibracion.c7 = parseFloat(document.getElementById('cal_c7').value) || 1.0;
+            calibracion.c8 = parseFloat(document.getElementById('cal_c8').value) || 1.0;
+
+            console.log("Nuevas constantes guardadas localmente:", calibracion);
+            modalConfig.style.display = 'none'; // Esconde el menú
+
+            // Envía la cadena de calibración por BLE si está el hardware activo
+            if (connectedCharacteristic) {
+                try {
+                    const cmdCal = `SET_CAL:${calibracion.c1},${calibracion.c2},${calibracion.c3},${calibracion.c4}\n`;
+                    await connectedCharacteristic.writeValue(new TextEncoder().encode(cmdCal));
+                } catch(e) { console.warn("No se pudieron enviar las constantes al PIC"); }
+            }
+        });
+    }
+
   });
 }
