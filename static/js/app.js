@@ -11,7 +11,7 @@ if (!window.__ivvisualizer_initialized) {
   };
 
   // Parámetro de configuración para el barrido de curva
-  let puntosBarridoConfig = 255; 
+  let puntosBarridoConfig = 100; 
 
   document.addEventListener('DOMContentLoaded', () => {
     // 1. ENLACES AL DOM (HTML)
