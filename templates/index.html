@@ -149,7 +149,7 @@
     <script src="../static/js/app.js"></script>
 
     <div id="modalConfig" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 550px;"> <h3>Calibration Constants</h3>
+        <div class="modal-content"> <h3>Calibration Constants</h3>
             <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Adjust calibration constants of current and voltage sensors.</p>
             
             <div class="modal-grid">
@@ -220,9 +220,9 @@
                             <option value="20">20 A</option>
                         </select>
                     </div>
-                    <div class="input-field">
+                    <div class="input-field" style="grid-column: span 2;">
                         <label>Max Power Axis:</label>
-                        <select id="cfgMaxPotencia" style="padding: 8px; background: #2c2c35; border: 1px solid #555; border-radius: 8px; color: white; font-size: 14px;">
+                        <select id="cfgMaxPotencia" style="padding: 8px; background: #2c2c35; border: 1px solid #555; border-radius: 8px; color: white; font-size: 14px; width: 100%;">
                             <option value="100">100 W</option>
                             <option value="200">200 W</option>
                             <option value="300">300 W</option>
@@ -235,14 +235,12 @@
                             <option value="1000">1000 W</option>
                         </select>
                     </div>
-                    <div class="input-field">
-                        <label>IV Curve Sweep Points:</label>
-                        <select id="cfgPuntosBarrido" style="padding: 8px; background: #2c2c35; border: 1px solid #555; border-radius: 8px; color: white; font-size: 14px;">
-                            <option value="50">50 points</option>
-                            <option value="100">100 points</option>
-                            <option value="150">150 points</option>
-                            <option value="200">200 points</option>
-                        </select>
+                    <div class="input-field" style="grid-column: span 2; margin-top: 5px;">
+                        <label style="display: flex; justify-content: space-between;">
+                            <span>IV Curve Sweep Points:</span>
+                            <span id="cfgPuntosBarridoText" style="color: #ffca28; font-weight: bold;">100 pts</span>
+                        </label>
+                        <input type="range" id="cfgPuntosBarrido" min="50" max="200" step="1" value="100" style="width: 100%; background: #2c2c35; border-radius: 10px; margin-top: 5px;">
                     </div>
                 </div>
             </div>
@@ -261,4 +259,23 @@
         }
         .modal-content {
             background-color: #1e1e24; border: 1px solid #444; border-radius: 15px;
-            padding: 20px; width: 90
+            padding: 20px; width: 90%; max-width: 480px; color: white; text-align: left;
+            box-shadow: 0px 4px 20px rgba(0,0,0,0.5);
+        }
+        .modal-content h3 { margin-top: 0; color: #ffca28; }
+        .modal-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+        }
+        .input-field { display: flex; flex-direction: column; gap: 4px; }
+        .input-field label { font-size: 12px; color: #aaa; }
+        .input-field input {
+            padding: 8px; background: #2c2c35; border: 1px solid #555;
+            border-radius: 8px; color: white; font-size: 14px;
+        }
+        @media (max-width: 480px) {
+            .modal-grid { grid-template-columns: 1fr; }
+            .modal-grid .input-field { grid-column: auto !important; }
+        </div>
+    </style>
+</body>
+</html>
