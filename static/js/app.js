@@ -10,14 +10,20 @@ if (!window.__ivvisualizer_initialized) {
       I_OUT_m: 0.00386, I_OUT_n: 0.009
   };
 
+  // Parámetro de configuración para el barrido de curva
+  let puntosBarridoConfig = 255; 
+
   document.addEventListener('DOMContentLoaded', () => {
     // 1. ENLACES AL DOM (HTML)
     const botonConectar = document.getElementById('botonConectar');
+    const botonBarrido = document.getElementById('botonBarrido'); // Asegúrate de añadir este ID en tu botón del HTML
     const selectorModo = document.getElementById('selectorModo');
     const barraFijarVal = document.getElementById('barraFijarVal');
-    const valorSliderText = document.getElementById('valorSliderText');
     const labelSlider = document.getElementById('labelSlider');
-    const canvasEl = document.getElementById('graficoIV');
+    
+    // Enlaces para los Canvas independientes
+    const canvasIV = document.getElementById('graficoIV');
+    const canvasPV = document.getElementById('graficoPV'); // Asegúrate de tener este nuevo canvas en el HTML
     
     // Enlaces para los Displays de Telemetría
     const dispVin = document.getElementById('dispVin');
@@ -29,131 +35,117 @@ if (!window.__ivvisualizer_initialized) {
     const dispDuty = document.getElementById('dispDuty');
     const dispEff = document.getElementById('dispEff');
 
-    if (!canvasEl) return; 
-    const ctx = canvasEl.getContext('2d');
+    if (!canvasIV || !canvasPV) return; 
+    const ctxIV = canvasIV.getContext('2d');
+    const ctxPV = canvasPV.getContext('2d');
 
     // UUIDs fijos del módulo DSD TECH (HM-10)
     const SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
     const CHARACTERISTIC_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
 
-    // Detectar disponibilidad de la API Web Bluetooth
     const hasWebBluetooth = !!(navigator && navigator.bluetooth && typeof navigator.bluetooth.requestDevice === 'function');
-    if (!hasWebBluetooth) {
-      console.warn('Web Bluetooth API no disponible en este navegador/contexto');
-      if (botonConectar) {
+    if (!hasWebBluetooth && botonConectar) {
         botonConectar.disabled = true;
         botonConectar.innerText = 'Bluetooth no soportado';
-      }
     }
 
-    // 2. INICIALIZAR GRÁFICA CON DOBLE EJE Y (Chart.js)
-    let datosCurva = [];    
-    let datosPotencia = []; 
+    // 2. INICIALIZAR GRÁFICAS SEPARADAS (Chart.js)
+    let datosCurvaIV = [];    
+    let datosCurvaPV = []; 
 
-    const graficoIV = new Chart(ctx, {
+    const graficoIV = new Chart(ctxIV, {
         type: 'line',
         data: {
-            datasets: [
-                {
-                    label: 'IV-Curve (Current)',
-                    data: datosCurva,
-                    borderColor: '#ffca28',
-                    backgroundColor: 'rgba(255, 202, 40, 0.05)',
-                    borderWidth: 3,
-                    tension: 0.3,
-                    pointRadius: 2,
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'PV-Curve (Power)',
-                    data: datosPotencia,
-                    borderColor: '#00e676',
-                    backgroundColor: 'rgba(0, 230, 118, 0.05)',
-                    borderWidth: 3,
-                    tension: 0.3,
-                    pointRadius: 2,
-                    yAxisID: 'y1'
-                }
-            ]
+            datasets: [{
+                label: 'I-V Curve',
+                data: datosCurvaIV,
+                borderColor: '#ffca28',
+                backgroundColor: 'rgba(255, 202, 40, 0.05)',
+                borderWidth: 3,
+                tension: 0.2,
+                pointRadius: 2
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             animation: { duration: 0 },
-            interaction: { mode: 'nearest', intersect: true },
             scales: {
-                x: { 
-                    type: 'linear', 
-                    position: 'bottom', 
-                    title: { display: true, text: 'Voltage (V)', color: '#fff' }, 
-                    grid: { color: '#444' }, 
-                    ticks: { color: '#fff' } 
-                },
-                y: { 
-                    type: 'linear',
-                    position: 'left',
-                    title: { display: true, text: 'Current (A)', color: '#fff' }, 
-                    grid: { color: '#444' }, 
-                    ticks: { color: '#fff' }, 
-                    min: 0, 
-                    max: 6 
-                },
-                y1: { 
-                    type: 'linear',
-                    position: 'right',
-                    title: { display: true, text: 'Power (W)', color: '#fff' }, 
-                    grid: { drawOnChartArea: false }, 
-                    ticks: { color: '#fff' }, 
-                    min: 0, 
-                    max: 400 
-                }
+                x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Voltage (V)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 55 },
+                y: { type: 'linear', position: 'left', title: { display: true, text: 'Current (A)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 15 }
             },
-            plugins: {
-                legend: { labels: { color: '#fff' } }
-            }
+            plugins: { legend: { labels: { color: '#fff' } } }
         }
     });
 
-    // Buffers de renderizado de la gráfica
-    const puntosBufferIV = [];
-    const puntosBufferPV = [];
-    const MAX_POINTS = 2000;
-    const FLUSH_INTERVAL_MS = 15;
+    const graficoPV = new Chart(ctxPV, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'P-V Curve',
+                data: datosCurvaPV,
+                borderColor: '#00e676',
+                backgroundColor: 'rgba(0, 230, 118, 0.05)',
+                borderWidth: 3,
+                tension: 0.2,
+                pointRadius: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            scales: {
+                x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Voltage (V)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 55 },
+                y: { type: 'linear', position: 'left', title: { display: true, text: 'Power (W)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 500 }
+            },
+            plugins: { legend: { labels: { color: '#fff' } } }
+        }
+    });
 
-    function flushBufferToChart() {
-      
-    }
-
-    const flushTimer = setInterval(flushBufferToChart, FLUSH_INTERVAL_MS);
-
-    // Variables de control Bluetooth, Buffers y Loop de Telemetría
+    // Variables de control Bluetooth, Flujo y Máquina de Estados
     let connectedCharacteristic = null;
     let connectedDevice = null;
     let loopTelemetria = null; 
-    let bluetoothBufferTexto = ""; // Buffer dinámico esencial para evitar cortes en strings largos (>30% Duty)
+    let bluetoothBufferTexto = ""; 
+    
+    let modoBarridoActivo = false;
+    let lineasBarridoAcumuladas = [];
 
-    // 3. LÓGICA DE CONEXIÓN BLUETOOTH + PROCESAMIENTO DE DATOS CRÚDOS
+    // Funciones de control de Polling de Telemetría
+    function iniciarPollingTelemetria() {
+        if (loopTelemetria) clearInterval(loopTelemetria);
+        loopTelemetria = setInterval(async () => {
+            if (connectedCharacteristic && !modoBarridoActivo) {
+                try {
+                    const comandoBytes = new Uint8Array([0xAA, 0xA6, 0x00, 0x00]);
+                    await connectedCharacteristic.writeValue(comandoBytes);
+                } catch (e) {
+                    console.warn("Fallo en polling de telemetría", e);
+                }
+            }
+        }, 250);
+    }
+
+    function detenerPollingTelemetria() {
+        if (loopTelemetria) {
+            clearInterval(loopTelemetria);
+            loopTelemetria = null;
+        }
+    }
+
+    // 3. LÓGICA DE CONEXIÓN BLUETOOTH + PROCESAMIENTO MULTI-MODO
     if (botonConectar && hasWebBluetooth) {
       botonConectar.addEventListener('click', async () => {
         try {
-          // Desconexión limpia
           if (connectedDevice && connectedDevice.gatt && connectedDevice.gatt.connected) {
-            // 1. Detenemos el envío automático de telemetría inmediatamente
-            if (loopTelemetria) { clearInterval(loopTelemetria); loopTelemetria = null; }
-            
-            // 2. ENVIAR COMANDO DE APAGADO DE SEGURIDAD (0% Duty) ANTES DE DESCONECTAR
+            detenerPollingTelemetria();
             if (connectedCharacteristic) {
                 try {
-                    // Enviamos Modo Duty Cycle (0xB3) con valor Raw = 0 (0x00, 0x00)
                     const comandoApagar = new Uint8Array([0xAA, 0xB3, 0x00, 0x00]);
                     await connectedCharacteristic.writeValue(comandoApagar);
-                    console.log("Convertidor apagado con éxito (Duty 0%).");
-                } catch (e) {
-                    console.warn("No se pudo enviar el apagado. Tal vez el dispositivo se desconectó de golpe.", e);
-                }
+                } catch (e) {}
             }
-
-            // 3. Ahora sí, rompemos el enlace Bluetooth de forma segura
             try { connectedDevice.gatt.disconnect(); } catch (e) {}
             connectedDevice = null; connectedCharacteristic = null;
             botonConectar.innerText = 'Connect Bluetooth';
@@ -161,7 +153,6 @@ if (!window.__ivvisualizer_initialized) {
             return;
           }
 
-          // A partir de aquí sigue tu código normal para buscar y conectar el dispositivo...
           const device = await navigator.bluetooth.requestDevice({ 
             filters: [{ namePrefix: 'DSD TECH' }], 
             optionalServices: [SERVICE_UUID] 
@@ -179,7 +170,7 @@ if (!window.__ivvisualizer_initialized) {
 
           await characteristic.startNotifications();
           
-          // RECEPTOR CON BUFFER ANTI-FRAGMENTACIÓN INTEGRADO
+          // RECEPTOR CON BUFFER INTELIGENTE (TELEMETRÍA + BARRIDO IV/PV)
           characteristic.addEventListener('characteristicvaluechanged', (event) => {
             const value = event.target.value;
             let fragmentoDecodificado = '';
@@ -187,81 +178,162 @@ if (!window.__ivvisualizer_initialized) {
                 fragmentoDecodificado = new TextDecoder('utf-8').decode(value); 
             } catch (e) { return; }
             
-            // Acumular fragmento en el buffer global
             bluetoothBufferTexto += fragmentoDecodificado;
 
-            // Procesamos únicamente si detectamos el terminador de línea enviado por el PIC
             if (bluetoothBufferTexto.includes('\n')) {
                 const lineas = bluetoothBufferTexto.split('\n');
-                
-                // Mantenemos cualquier residuo incompleto para el siguiente evento de recepción
-                bluetoothBufferTexto = lineas.pop();
+                bluetoothBufferTexto = lineas.pop(); 
 
-                const lineaCompleta = lineas[0].trim();
-                if (!lineaCompleta) return;
+                for (let i = 0; i < lineas.length; i++) {
+                    const lineaLimpia = lineas[i].trim();
+                    if (!lineaLimpia) continue;
 
-                // Esperamos formato: V_IN_raw,I_IN_raw,V_OUT_raw,I_OUT_raw,Duty
-                const partes = lineaCompleta.split(',');
-                if (partes.length >= 5) {
-                    // 1. Extraer los datos crudos (raw) enviados por el PIC24
-                    const vInRaw  = parseFloat(partes[0]) || 0;
-                    const iInRaw  = parseFloat(partes[1]) || 0;
-                    const vOutRaw = parseFloat(partes[2]) || 0;
-                    const iOutRaw = parseFloat(partes[3]) || 0;
-                    const dutyRaw = parseFloat(partes[4]) || 0;
-                    
-                    // Cálculo de Duty exacto al 100% libre de cortes de caracteres
-                    const dutyVal = (dutyRaw / 1200) * 100; 
+                    // CASO A: MODO BARRIDO DE CURVA ACTIVO
+                    if (modoBarridoActivo) {
+                        if (lineaLimpia === "END") {
+                            console.log(`Barrido completo. Procesando ${lineasBarridoAcumuladas.length} puntos.`);
+                            procesarYGraficarCurvas(lineasBarridoAcumuladas);
+                            
+                            // Restaurar estados normales
+                            lineasBarridoAcumuladas = [];
+                            modoBarridoActivo = false;
+                            if (botonBarrido) {
+                                botonBarrido.innerText = "Obtener IV";
+                                botonBarrido.disabled = false;
+                            }
+                            iniciarPollingTelemetria(); // Volvemos a pedir telemetría automáticamente
+                        } else {
+                            lineasBarridoAcumuladas.push(lineaLimpia);
+                        }
+                    } 
+                    // CASO B: MODO TELEMETRÍA NORMAL
+                    else {
+                        const partes = lineaLimpia.split(',');
+                        if (partes.length >= 5) {
+                            const vInRaw  = parseFloat(partes[0]) || 0;
+                            const iInRaw  = parseFloat(partes[1]) || 0;
+                            const vOutRaw = parseFloat(partes[2]) || 0;
+                            const iOutRaw = parseFloat(partes[3]) || 0;
+                            const dutyRaw = parseFloat(partes[4]) || 0;
+                            
+                            const dutyVal = (dutyRaw / 1200) * 100; 
 
-                    // 2. Aplicar fórmulas de calibración local (y = m * x + n)
-                    const vInReal  = (vInRaw * calibracion.V_IN_m) + calibracion.V_IN_n;
-                    const iInReal  = (iInRaw * calibracion.I_IN_m) + calibracion.I_IN_n;
-                    const vOutReal = (vOutRaw * calibracion.V_OUT_m) + calibracion.V_OUT_n;
-                    const iOutReal = (iOutRaw * calibracion.I_OUT_m) + calibracion.I_OUT_n;
+                            const vInReal  = (vInRaw * calibracion.V_IN_m) + calibracion.V_IN_n;
+                            const iInReal  = (iInRaw * calibracion.I_IN_m) + calibracion.I_IN_n;
+                            const vOutReal = (vOutRaw * calibracion.V_OUT_m) + calibracion.V_OUT_n;
+                            const iOutReal = (iOutRaw * calibracion.I_OUT_m) + calibracion.I_OUT_n;
 
-                    // 3. Cálculos de Potencia y Eficiencia
-                    const pInReal  = vInReal * iInReal;
-                    const pOutReal = vOutReal * iOutReal;
-                    
-                    let eficiencia = 0;
-                    if (pInReal > 0.1) {
-                        eficiencia = (pOutReal / pInReal) * 100;
-                        if (eficiencia > 100) eficiencia = 100; 
-                        if (eficiencia < 0) eficiencia = 0;
+                            const pInReal  = vInReal * iInReal;
+                            const pOutReal = vOutReal * iOutReal;
+                            
+                            let eficiencia = 0;
+                            if (pInReal > 0.1) {
+                                eficiencia = (pOutReal / pInReal) * 100;
+                                if (eficiencia > 100) eficiencia = 100; 
+                                if (eficiencia < 0) eficiencia = 0;
+                            }
+
+                            if (dispVin)  dispVin.innerText  = vInReal.toFixed(2);
+                            if (dispIin)  dispIin.innerText  = iInReal.toFixed(2);
+                            if (dispPin)  dispPin.innerText  = pInReal.toFixed(1);
+                            if (dispVout) dispVout.innerText = vOutReal.toFixed(2);
+                            if (dispIout) dispIout.innerText = iOutReal.toFixed(2);
+                            if (dispPout) dispPout.innerText = pOutReal.toFixed(1);
+                            if (dispDuty) dispDuty.innerText = dutyVal.toFixed(0);
+                            if (dispEff)  dispEff.innerText  = eficiencia.toFixed(1);
+                        }
                     }
-
-                    // 4. Actualizar los Displays en el HTML
-                    if (dispVin)  dispVin.innerText  = vInReal.toFixed(1);
-                    if (dispIin)  dispIin.innerText  = iInReal.toFixed(1);
-                    if (dispPin)  dispPin.innerText  = pInReal.toFixed(0);
-                    if (dispVout) dispVout.innerText = vOutReal.toFixed(1);
-                    if (dispIout) dispIout.innerText = iOutReal.toFixed(1);
-                    if (dispPout) dispPout.innerText = pOutReal.toFixed(0);
-                    if (dispDuty) dispDuty.innerText = dutyVal.toFixed(1);
-                    if (dispEff)  dispEff.innerText  = eficiencia.toFixed(0);
                 }
             }
           });
 
-          // DISPARADOR PERIÓDICO (Polling a 4Hz) -> Envía [0xAA, 0xA6, 0x00, 0x00]
-          loopTelemetria = setInterval(async () => {
-              if (connectedCharacteristic) {
-                  try {
-                      const comandoBytes = new Uint8Array([0xAA, 0xA6, 0x00, 0x00]);
-                      await connectedCharacteristic.writeValue(comandoBytes);
-                  } catch (e) {
-                      console.warn("Fallo en el sub-loop de polling de telemetría", e);
-                  }
-              }
-          }, 250);
+          // Iniciar el bucle periódico de lecturas
+          iniciarPollingTelemetria();
 
         } catch (error) {
           console.error(error);
           botonConectar.innerText = "Error de conexión";
           botonConectar.style.background = "#f44336";
-          if (loopTelemetria) { clearInterval(loopTelemetria); loopTelemetria = null; }
+          detenerPollingTelemetria();
         }
       });
+    }
+
+    // INTERRUPTOR DE ACCIÓN: DISPARAR BARRIDO DE CURVA DESDE LA WEB
+    if (botonBarrido) {
+        botonBarrido.addEventListener('click', async () => {
+            if (!connectedCharacteristic) {
+                alert("Primero debes conectar el dispositivo Bluetooth.");
+                return;
+            }
+
+            try {
+                botonBarrido.disabled = true;
+                botonBarrido.innerText = "⏳ Midiendo...";
+                
+                // 1. Congelar telemetría normal y purgar buffers viejos
+                detenerPollingTelemetria();
+                modoBarridoActivo = true;
+                lineasBarridoAcumuladas = [];
+                bluetoothBufferTexto = "";
+
+                // 2. Extraer MSB y LSB de la variable global de puntos (ej: 255 -> 0x00, 0xFF)
+                const msb = (puntosBarridoConfig >> 8) & 0xFF;
+                const lsb = puntosBarridoConfig & 0xFF;
+
+                // Trama binaria solicitada: [0xAA, 0xC1, MSB, LSB]
+                const comandoBarrido = new Uint8Array([0xAA, 0xC1, msb, lsb]);
+                
+                // 3. Enviar comando al PIC24
+                await connectedCharacteristic.writeValue(comandoBarrido);
+                console.log(`Solicitado Barrido IV de ${puntosBarridoConfig} puntos.`);
+
+            } catch (e) {
+                console.error("Error al iniciar el barrido", e);
+                botonBarrido.disabled = false;
+                botonBarrido.innerText = "Obtener IV";
+                modoBarridoActivo = false;
+                iniciarPollingTelemetria();
+            }
+        });
+    }
+
+    // PROCESADOR Y FORMATEADOR DE CURVAS DESACOPLADAS
+    function procesarYGraficarCurvas(lineas) {
+        let nuevosPuntosIV = [];
+        let nuevosPuntosPV = [];
+
+        for (let i = 0; i < lineas.length; i++) {
+            const tokens = lineas[i].split(',');
+            if (tokens.length === 2) {
+                const vRaw = parseFloat(tokens[0]);
+                const iRaw = parseFloat(tokens[1]);
+
+                if (!isNaN(vRaw) && !isNaN(iRaw)) {
+                    // Aplicamos calibración local estricta de entrada
+                    const vCalibrado = (vRaw * calibracion.V_IN_m) + calibracion.V_IN_n;
+                    const iCalibrado = (iRaw * calibracion.I_IN_m) + calibracion.I_IN_n;
+                    const pCalculada = vCalibrado * iCalibrado;
+
+                    // Guardamos estructurado para Chart.js {x: Voltaje, y: Variable}
+                    nuevosPuntosIV.push({ x: vCalibrado, y: iCalibrado });
+                    nuevosPuntosPV.push({ x: vCalibrado, y: pCalculada });
+                }
+            }
+        }
+
+        // Ordenamos los arrays por el eje X (Voltaje) de menor a mayor
+        // Esto evita líneas cruzadas raras si el PIC envía datos en desorden
+        nuevosPuntosIV.sort((a, b) => a.x - b.x);
+        nuevosPuntosPV.sort((a, b) => a.x - b.x);
+
+        // Volcar datos procesados en las gráficas independientes
+        graficoIV.data.datasets[0].data = nuevosPuntosIV;
+        graficoPV.data.datasets[0].data = nuevosPuntosPV;
+
+        // Forzar repintado inmediato de las interfaces gráficas
+        graficoIV.update();
+        graficoPV.update();
     }
 
     // 4. LÓGICA DINÁMICA DEL SLIDER Y COMANDOS BINARIOS EN ESPAÑOL RECONFIGURADOS
