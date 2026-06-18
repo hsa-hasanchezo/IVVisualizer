@@ -45,6 +45,7 @@ if (!window.__ivvisualizer_initialized) {
     const botonBarrido = document.getElementById('botonBarrido'); 
     const botonFreeze = document.getElementById('botonFreeze'); // <- NUEVO
     const botonClear = document.getElementById('botonClear');   // <- NUEVO
+    const botonDownloadCSV = document.getElementById('botonDownloadCSV'); // <- ENLACE CSV
     const selectorModo = document.getElementById('selectorModo');
     const barraFijarVal = document.getElementById('barraFijarVal');
     const labelSlider = document.getElementById('labelSlider');
@@ -459,6 +460,38 @@ if (!window.__ivvisualizer_initialized) {
         });
     }
 
+    // Escuchador de Acción: DOWNLOAD CSV (NUEVO)
+    if (botonDownloadCSV) {
+        botonDownloadCSV.addEventListener('click', () => {
+            if (!datosCurvaIV || datosCurvaIV.length === 0) {
+                alert("No hay datos de curvas disponibles para descargar. Realiza un barrido primero.");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Voltage (V),Current (A),Power (W)\n";
+
+            datosCurvaIV.forEach((punto) => {
+                const v = punto.x.toFixed(4);
+                const i = punto.y.toFixed(4);
+                const p = (punto.x * punto.y).toFixed(4);
+                csvContent += `${v},${i},${p}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const linkDescarga = document.createElement("a");
+            linkDescarga.setAttribute("href", encodedUri);
+            
+            const timestamp = new Date().toISOString().slice(0,19).replace(/:/g, "-");
+            linkDescarga.setAttribute("download", `IV_Curve_Data_${timestamp}.csv`);
+            
+            document.body.appendChild(linkDescarga);
+            linkDescarga.click();
+            document.body.removeChild(linkDescarga);
+            console.log("Archivo CSV generado y descargado con éxito.");
+        });
+    }
+
     // PROCESADOR Y FORMATEADOR DE CURVAS DESACOPLADAS
     function procesarYGraficarCurvas(lineas) {
         let nuevosPuntosIV = [];
@@ -496,9 +529,9 @@ if (!window.__ivvisualizer_initialized) {
 
     // 4. LÓGICA DINÁMICA DEL SLIDER PRINCIPAL Y COMANDOS BINARIOS
     const configModos = {
-        MODO1: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "MPPT (Max Power Limit):",     byteModo: 0xB1, init: 500 }, 
+        MODO1: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "MPPT (Max Power Limit):",    byteModo: 0xB1, init: 500 }, 
         MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):",   byteModo: 0xB2, init: 50 },  
-        MODO3: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty Cycle):",       byteModo: 0xB3, init: 0 },
+        MODO3: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty Cycle):",      byteModo: 0xB3, init: 0 },
     };
 
     async function enviarComandoBinario() {
@@ -650,4 +683,4 @@ if (!window.__ivvisualizer_initialized) {
         });
     }
   });
-} 
+}
