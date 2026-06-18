@@ -295,8 +295,8 @@ if (!window.__ivvisualizer_initialized) {
 
                           // ACTUALIZAR PUNTO GORDO EN TIEMPO REAL EN LAS GRÁFICAS
                           // Modificamos el dataset[1] que corresponde al punto de operación
-                          graficoIV.data.datasets[1].data = [{ x: vIn, y: iIn }];
-                          graficoPV.data.datasets[1].data = [{ x: vIn, y: pIn }];
+                          graficoIV.data.datasets[1].data = [{ x: vInReal, y: iInReal }];
+                          graficoPV.data.datasets[1].data = [{ x: vInReal, y: pInReal }];
                           
                           // Refrescamos ambas gráficas para que el punto se mueva suavemente
                           graficoIV.update();
