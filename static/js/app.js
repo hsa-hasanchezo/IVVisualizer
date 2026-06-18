@@ -417,7 +417,7 @@ if (!window.__ivvisualizer_initialized) {
         let valorRaw16 = 0;
 
         if (modoActual === 'MODO1') {
-            valorRaw16 = Math.round(valorSlider * 40);
+            valorRaw16 = Math.round(valorSlider * 84);
         } 
         else if (modoActual === 'MODO2') {
             valorRaw16 = Math.round((valorSlider - calibracion.V_IN_n) / calibracion.V_IN_m);
@@ -425,9 +425,7 @@ if (!window.__ivvisualizer_initialized) {
         else if (modoActual === 'MODO3') {
             valorRaw16 = Math.round(valorSlider * 12);
         }
-        else if (modoActual === 'MODO4') {
-            valorRaw16 = Math.round(valorSlider);
-        }
+   
 
         if (valorRaw16 < 0) valorRaw16 = 0;
         if (valorRaw16 > 65535) valorRaw16 = 65535;
