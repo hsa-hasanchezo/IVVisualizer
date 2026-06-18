@@ -69,7 +69,7 @@ if (!window.__ivvisualizer_initialized) {
                     pointHoverRadius: 0
                 },
                 {
-                    label: 'Live Operating Point',
+                    label: 'Operating Point',
                     data: [], 
                     borderColor: '#ffca28',      // CAMBIADO: Mismo amarillo de la curva I-V
                     backgroundColor: '#ffca28',  // CAMBIADO: Mismo amarillo de la curva I-V
@@ -99,8 +99,8 @@ if (!window.__ivvisualizer_initialized) {
                         label: function(context) {
                             const xVal = context.parsed.x.toFixed(2);
                             const yVal = context.parsed.y.toFixed(2);
-                            const prefix = context.datasetIndex === 1 ? ' EN VIVO ->' : '';
-                            return `${prefix} Voltaje: ${xVal} V | Corriente: ${yVal} A`;
+                            const prefix = context.datasetIndex === 1 ? ' LIVE ->' : '';
+                            return `${prefix} Voltage: ${xVal} V | Current: ${yVal} A`;
                         }
                     }
                 }
@@ -123,7 +123,7 @@ if (!window.__ivvisualizer_initialized) {
                     pointHoverRadius: 0
                 },
                 {
-                    label: 'Live Operating Point',
+                    label: 'Operating Point',
                     data: [], 
                     borderColor: '#00e676',      // CAMBIADO: Mismo verde de la curva P-V
                     backgroundColor: '#00e676',  // CAMBIADO: Mismo verde de la curva P-V
