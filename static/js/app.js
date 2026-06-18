@@ -49,24 +49,35 @@ if (!window.__ivvisualizer_initialized) {
         botonConectar.innerText = 'Bluetooth no soportado';
     }
 
-    // 2. INICIALIZAR GRÁFICAS SEPARADAS (Chart.js)
-// 2. INICIALIZAR GRÁFICAS SEPARADAS (Chart.js)
+   
+// 2. INICIALIZAR GRÁFICAS SEPARADAS CON PUNTO DE OPERACIÓN EN VIVO
     let datosCurvaIV = [];    
     let datosCurvaPV = []; 
 
     const graficoIV = new Chart(ctxIV, {
         type: 'line',
         data: {
-            datasets: [{
-                label: 'I-V Curve',
-                data: datosCurvaIV,
-                borderColor: '#ffca28',
-                backgroundColor: 'rgba(255, 202, 40, 0.05)',
-                borderWidth: 3,
-                tension: 0.2,
-                pointRadius: 0,       // Oculta el punto en la línea
-                pointHoverRadius: 0   // Evita que el punto crezca al pasar el mouse
-            }]
+            datasets: [
+                {
+                    label: 'I-V Curve',
+                    data: datosCurvaIV,
+                    borderColor: '#ffca28',
+                    backgroundColor: 'rgba(255, 202, 40, 0.05)',
+                    borderWidth: 3,
+                    tension: 0.2,
+                    pointRadius: 0,
+                    pointHoverRadius: 0
+                },
+                {
+                    label: 'Live Operating Point',
+                    data: [], // Se llenará dinámicamente con un solo punto [{x: V, y: I}]
+                    borderColor: '#ff3d00',      // Color rojo/naranja brillante
+                    backgroundColor: '#ff3d00',
+                    pointRadius: 8,              // ¡Punto bien gordo!
+                    pointHoverRadius: 10,
+                    showLine: false              // Que no dibuje ninguna línea
+                }
+            ]
         },
         options: {
             responsive: true,
@@ -74,17 +85,17 @@ if (!window.__ivvisualizer_initialized) {
             animation: { duration: 0 },
             scales: {
                 x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Voltage (V)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 55 },
-                y: { type: 'linear', position: 'left', title: { display: true, text: 'Current (A)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 14 } // Ajustado max a 14
+                y: { type: 'linear', position: 'left', title: { display: true, text: 'Current (A)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 14 }
             },
             plugins: { 
                 legend: { labels: { color: '#fff' } },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            // Formatea el tooltip flotante para mostrar valores reales en lugar de RAW
                             const xVal = context.parsed.x.toFixed(2);
                             const yVal = context.parsed.y.toFixed(2);
-                            return ` Voltaje: ${xVal} V | Corriente: ${yVal} A`;
+                            const prefix = context.datasetIndex === 1 ? ' EN VIVO ->' : '';
+                            return `${prefix} Voltaje: ${xVal} V | Corriente: ${yVal} A`;
                         }
                     }
                 }
@@ -95,16 +106,27 @@ if (!window.__ivvisualizer_initialized) {
     const graficoPV = new Chart(ctxPV, {
         type: 'line',
         data: {
-            datasets: [{
-                label: 'P-V Curve',
-                data: datosCurvaPV,
-                borderColor: '#00e676',
-                backgroundColor: 'rgba(0, 230, 118, 0.05)',
-                borderWidth: 3,
-                tension: 0.2,
-                pointRadius: 0,       // Oculta el punto en la línea
-                pointHoverRadius: 0   // Evita que el punto crezca al pasar el mouse
-            }]
+            datasets: [
+                {
+                    label: 'P-V Curve',
+                    data: datosCurvaPV,
+                    borderColor: '#00e676',
+                    backgroundColor: 'rgba(0, 230, 118, 0.05)',
+                    borderWidth: 3,
+                    tension: 0.2,
+                    pointRadius: 0,
+                    pointHoverRadius: 0
+                },
+                {
+                    label: 'Live Operating Point',
+                    data: [], // Se llenará dinámicamente con un solo punto [{x: V, y: P}]
+                    borderColor: '#ff3d00',      // Mismo color rojo/naranja brillante
+                    backgroundColor: '#ff3d00',
+                    pointRadius: 8,              // ¡Punto gordo!
+                    pointHoverRadius: 10,
+                    showLine: false              // Sin línea
+                }
+            ]
         },
         options: {
             responsive: true,
@@ -119,10 +141,10 @@ if (!window.__ivvisualizer_initialized) {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            // Formatea el tooltip flotante para mostrar valores reales en lugar de RAW
                             const xVal = context.parsed.x.toFixed(2);
                             const yVal = context.parsed.y.toFixed(1);
-                            return ` Voltaje: ${xVal} V | Potencia: ${yVal} W`;
+                            const prefix = context.datasetIndex === 1 ? ' EN VIVO ->' : '';
+                            return `${prefix} Voltaje: ${xVal} V | Potencia: ${yVal} W`;
                         }
                     }
                 }
@@ -130,6 +152,8 @@ if (!window.__ivvisualizer_initialized) {
         }
     });
 
+
+    
     // Variables de control Bluetooth, Flujo y Máquina de Estados
     let connectedCharacteristic = null;
     let connectedDevice = null;
@@ -268,6 +292,15 @@ if (!window.__ivvisualizer_initialized) {
                             if (dispPout) dispPout.innerText = pOutReal.toFixed(1);
                             if (dispDuty) dispDuty.innerText = dutyVal.toFixed(0);
                             if (dispEff)  dispEff.innerText  = eficiencia.toFixed(1);
+
+                          // ACTUALIZAR PUNTO GORDO EN TIEMPO REAL EN LAS GRÁFICAS
+                          // Modificamos el dataset[1] que corresponde al punto de operación
+                          graficoIV.data.datasets[1].data = [{ x: vIn, y: iIn }];
+                          graficoPV.data.datasets[1].data = [{ x: vIn, y: pIn }];
+                          
+                          // Refrescamos ambas gráficas para que el punto se mueva suavemente
+                          graficoIV.update();
+                          graficoPV.update();
                         }
                     }
                 }
