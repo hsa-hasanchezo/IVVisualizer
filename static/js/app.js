@@ -459,9 +459,11 @@ if (!window.__ivvisualizer_initialized) {
         barraFijarVal.min = config.min;
         barraFijarVal.max = config.max;
         barraFijarVal.step = config.step;
-        barraFijarVal.value = config.min;
+        
+        // ¡CAMBIADO!: Ahora arranca en el valor asignado a 'init' en lugar del mínimo
+        barraFijarVal.value = config.init; 
 
-        actualizarTextoSlider(config.texto, config.min, config.unidad);
+        actualizarTextoSlider(config.texto, config.init, config.unidad);
     }
 
     function actualizarTextoSlider(textoLabel, valor, unidad) {
