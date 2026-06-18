@@ -50,6 +50,7 @@ if (!window.__ivvisualizer_initialized) {
     }
 
     // 2. INICIALIZAR GRÁFICAS SEPARADAS (Chart.js)
+// 2. INICIALIZAR GRÁFICAS SEPARADAS (Chart.js)
     let datosCurvaIV = [];    
     let datosCurvaPV = []; 
 
@@ -63,7 +64,8 @@ if (!window.__ivvisualizer_initialized) {
                 backgroundColor: 'rgba(255, 202, 40, 0.05)',
                 borderWidth: 3,
                 tension: 0.2,
-                pointRadius: 2
+                pointRadius: 0,       // Oculta el punto en la línea
+                pointHoverRadius: 0   // Evita que el punto crezca al pasar el mouse
             }]
         },
         options: {
@@ -72,9 +74,21 @@ if (!window.__ivvisualizer_initialized) {
             animation: { duration: 0 },
             scales: {
                 x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Voltage (V)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 55 },
-                y: { type: 'linear', position: 'left', title: { display: true, text: 'Current (A)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 15 }
+                y: { type: 'linear', position: 'left', title: { display: true, text: 'Current (A)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 14 } // Ajustado max a 14
             },
-            plugins: { legend: { labels: { color: '#fff' } } }
+            plugins: { 
+                legend: { labels: { color: '#fff' } },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            // Formatea el tooltip flotante para mostrar valores reales en lugar de RAW
+                            const xVal = context.parsed.x.toFixed(2);
+                            const yVal = context.parsed.y.toFixed(2);
+                            return ` Voltaje: ${xVal} V | Corriente: ${yVal} A`;
+                        }
+                    }
+                }
+            }
         }
     });
 
@@ -88,7 +102,8 @@ if (!window.__ivvisualizer_initialized) {
                 backgroundColor: 'rgba(0, 230, 118, 0.05)',
                 borderWidth: 3,
                 tension: 0.2,
-                pointRadius: 2
+                pointRadius: 0,       // Oculta el punto en la línea
+                pointHoverRadius: 0   // Evita que el punto crezca al pasar el mouse
             }]
         },
         options: {
@@ -99,7 +114,19 @@ if (!window.__ivvisualizer_initialized) {
                 x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Voltage (V)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 55 },
                 y: { type: 'linear', position: 'left', title: { display: true, text: 'Power (W)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 500 }
             },
-            plugins: { legend: { labels: { color: '#fff' } } }
+            plugins: { 
+                legend: { labels: { color: '#fff' } },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            // Formatea el tooltip flotante para mostrar valores reales en lugar de RAW
+                            const xVal = context.parsed.x.toFixed(2);
+                            const yVal = context.parsed.y.toFixed(1);
+                            return ` Voltaje: ${xVal} V | Potencia: ${yVal} W`;
+                        }
+                    }
+                }
+            }
         }
     });
 
