@@ -6,7 +6,7 @@ if (!window.__ivvisualizer_initialized) {
   let calibracion = {
       V_IN_m: 0.01533,  V_IN_n: 0.038,  
       I_IN_m: 0.00389,  I_IN_n: 0.009,
-      V_OUT_m: -0.01650, V_OUT_n: 64.079, 
+      V_OUT_m: -0.01640, V_OUT_n: 63.812, 
       I_OUT_m: 0.00386, I_OUT_n: 0.009
   };
 
