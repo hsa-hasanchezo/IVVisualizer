@@ -143,8 +143,8 @@ if (!window.__ivvisualizer_initialized) {
                             const xVal = context.parsed.x.toFixed(2);
                             const yVal = context.parsed.y.toFixed(2);
                             let prefix = '';
-                            if (context.datasetIndex === 1) prefix = ' LIVE ->';
-                            if (context.datasetIndex === 2) prefix = ' FROZEN ->';
+                            if (context.datasetIndex === 1) prefix = ' LIVE:';
+                            if (context.datasetIndex === 2) prefix = ' FROZEN:';
                             return `${prefix} Voltage: ${xVal} V | Current: ${yVal} A`;
                         }
                     }
