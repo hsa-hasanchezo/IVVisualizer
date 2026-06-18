@@ -2,7 +2,7 @@
 if (!window.__ivvisualizer_initialized) {
   window.__ivvisualizer_initialized = true;
 
-  // A) VARIABLES GLOBALES DE CALIBRACIÓN (Almacenadas EXCLUSIVAMENTE en la Web)
+  // A) VARIABLES GLOBALES DE CALIBRACIÓN Y GRÁFICAS (Persistencia con localStorage)
   let calibracion = {
       V_IN_m: 0.01533,  V_IN_n: 0.038,  
       I_IN_m: 0.00389,  I_IN_n: 0.009,
@@ -10,20 +10,46 @@ if (!window.__ivvisualizer_initialized) {
       I_OUT_m: 0.00386, I_OUT_n: 0.009
   };
 
+  // Nuevas variables globales para límites de ejes y resolución de barrido
+  let limitesGraficas = {
+      maxVoltaje: 60,
+      maxCorriente: 14,
+      maxPotencia: 500
+  };
+
   // Parámetro de configuración para el barrido de curva
-  let puntosBarridoConfig = 255; 
+  let puntosBarridoConfig = 100; 
+
+  // FUNCIÓN PARA CARGAR LA CONFIGURACIÓN DE LOCALSTORAGE
+  function cargarConfiguracionLocal() {
+      const calGuardada = localStorage.getItem('pv_calibracion');
+      if (calGuardada) {
+          calibracion = JSON.parse(calGuardada);
+      }
+      const limGuardados = localStorage.getItem('pv_limites_graficas');
+      if (limGuardados) {
+          limitesGraficas = JSON.parse(limGuardados);
+      }
+      const ptsGuardados = localStorage.getItem('pv_puntos_barrido');
+      if (ptsGuardados) {
+          puntosBarridoConfig = parseInt(ptsGuardados, 10);
+      }
+  }
+
+  // Cargar configuraciones antes de inicializar la interfaz
+  cargarConfiguracionLocal();
 
   document.addEventListener('DOMContentLoaded', () => {
     // 1. ENLACES AL DOM (HTML)
     const botonConectar = document.getElementById('botonConectar');
-    const botonBarrido = document.getElementById('botonBarrido'); // Asegúrate de añadir este ID en tu botón del HTML
+    const botonBarrido = document.getElementById('botonBarrido'); 
     const selectorModo = document.getElementById('selectorModo');
     const barraFijarVal = document.getElementById('barraFijarVal');
     const labelSlider = document.getElementById('labelSlider');
     
     // Enlaces para los Canvas independientes
     const canvasIV = document.getElementById('graficoIV');
-    const canvasPV = document.getElementById('graficoPV'); // Asegúrate de tener este nuevo canvas en el HTML
+    const canvasPV = document.getElementById('graficoPV'); 
     
     // Enlaces para los Displays de Telemetría
     const dispVin = document.getElementById('dispVin');
@@ -34,6 +60,13 @@ if (!window.__ivvisualizer_initialized) {
     const dispPout = document.getElementById('dispPout');
     const dispDuty = document.getElementById('dispDuty');
     const dispEff = document.getElementById('dispEff');
+
+    // Enlaces a los nuevos controles del modal
+    const cfgMaxVoltaje = document.getElementById('cfgMaxVoltaje');
+    const cfgMaxCorriente = document.getElementById('cfgMaxCorriente');
+    const cfgMaxPotencia = document.getElementById('cfgMaxPotencia');
+    const cfgPuntosBarrido = document.getElementById('cfgPuntosBarrido');
+    const cfgPuntosBarridoText = document.getElementById('cfgPuntosBarridoText');
 
     if (!canvasIV || !canvasPV) return; 
     const ctxIV = canvasIV.getContext('2d');
@@ -49,8 +82,7 @@ if (!window.__ivvisualizer_initialized) {
         botonConectar.innerText = 'Bluetooth no soportado';
     }
 
-   
-// 2. INICIALIZAR GRÁFICAS SEPARADAS CON COLORES INTEGRADOS Y TOOLTIPS LIMPIOS
+    // 2. INICIALIZAR GRÁFICAS SEPARADAS CON LÍMITES DINÁMICOS
     let datosCurvaIV = [];    
     let datosCurvaPV = []; 
 
@@ -71,8 +103,8 @@ if (!window.__ivvisualizer_initialized) {
                 {
                     label: 'Operating Point',
                     data: [], 
-                    borderColor: '#ffca28',      // CAMBIADO: Mismo amarillo de la curva I-V
-                    backgroundColor: '#ffca28',  // CAMBIADO: Mismo amarillo de la curva I-V
+                    borderColor: '#ffca28',      
+                    backgroundColor: '#ffca28',  
                     pointRadius: 8,              
                     pointHoverRadius: 10,
                     showLine: false              
@@ -84,8 +116,8 @@ if (!window.__ivvisualizer_initialized) {
             maintainAspectRatio: false,
             animation: { duration: 0 },
             scales: {
-                x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Voltage (V)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 60 },
-                y: { type: 'linear', position: 'left', title: { display: true, text: 'Current (A)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 14 }
+                x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Voltage (V)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: limitesGraficas.maxVoltaje },
+                y: { type: 'linear', position: 'left', title: { display: true, text: 'Current (A)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: limitesGraficas.maxCorriente }
             },
             plugins: { 
                 legend: { labels: { color: '#fff' } },
@@ -93,9 +125,7 @@ if (!window.__ivvisualizer_initialized) {
                     mode: 'nearest',
                     intersect: true,
                     callbacks: {
-                        // Limpia la cabecera por defecto para evitar duplicar el valor X crudo
                         title: function() { return ''; }, 
-                        // Muestra exclusivamente nuestra cadena de texto real procesada
                         label: function(context) {
                             const xVal = context.parsed.x.toFixed(2);
                             const yVal = context.parsed.y.toFixed(2);
@@ -125,8 +155,8 @@ if (!window.__ivvisualizer_initialized) {
                 {
                     label: 'Operating Point',
                     data: [], 
-                    borderColor: '#00e676',      // CAMBIADO: Mismo verde de la curva P-V
-                    backgroundColor: '#00e676',  // CAMBIADO: Mismo verde de la curva P-V
+                    borderColor: '#00e676',      
+                    backgroundColor: '#00e676',  
                     pointRadius: 8,              
                     pointHoverRadius: 10,
                     showLine: false              
@@ -138,8 +168,8 @@ if (!window.__ivvisualizer_initialized) {
             maintainAspectRatio: false,
             animation: { duration: 0 },
             scales: {
-                x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Voltage (V)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 60 },
-                y: { type: 'linear', position: 'left', title: { display: true, text: 'Power (W)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: 500 }
+                x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Voltage (V)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: limitesGraficas.maxVoltaje },
+                y: { type: 'linear', position: 'left', title: { display: true, text: 'Power (W)', color: '#fff' }, grid: { color: '#444' }, ticks: { color: '#fff' }, min: 0, max: limitesGraficas.maxPotencia }
             },
             plugins: { 
                 legend: { labels: { color: '#fff' } },
@@ -147,9 +177,7 @@ if (!window.__ivvisualizer_initialized) {
                     mode: 'nearest',
                     intersect: true,
                     callbacks: {
-                        // Limpia la cabecera por defecto para evitar duplicar el valor X crudo
                         title: function() { return ''; },
-                        // Muestra exclusivamente nuestra cadena de texto real procesada
                         label: function(context) {
                             const xVal = context.parsed.x.toFixed(2);
                             const yVal = context.parsed.y.toFixed(1);
@@ -260,7 +288,7 @@ if (!window.__ivvisualizer_initialized) {
                                 botonBarrido.innerText = "Obtener IV";
                                 botonBarrido.disabled = false;
                             }
-                            iniciarPollingTelemetria(); // Volvemos a pedir telemetría automáticamente
+                            iniciarPollingTelemetria(); 
                         } else {
                             lineasBarridoAcumuladas.push(lineaLimpia);
                         }
@@ -301,14 +329,12 @@ if (!window.__ivvisualizer_initialized) {
                             if (dispDuty) dispDuty.innerText = dutyVal.toFixed(0);
                             if (dispEff)  dispEff.innerText  = eficiencia.toFixed(0);
 
-                          // ACTUALIZAR PUNTO GORDO EN TIEMPO REAL EN LAS GRÁFICAS
-                          // Modificamos el dataset[1] que corresponde al punto de operación
-                          graficoIV.data.datasets[1].data = [{ x: vInReal, y: iInReal }];
-                          graficoPV.data.datasets[1].data = [{ x: vInReal, y: pInReal }];
-                          
-                          // Refrescamos ambas gráficas para que el punto se mueva suavemente
-                          graficoIV.update();
-                          graficoPV.update();
+                            // ACTUALIZAR PUNTO GORDO EN TIEMPO REAL
+                            graficoIV.data.datasets[1].data = [{ x: vInReal, y: iInReal }];
+                            graficoPV.data.datasets[1].data = [{ x: vInReal, y: pInReal }];
+                            
+                            graficoIV.update();
+                            graficoPV.update();
                         }
                     }
                 }
@@ -327,7 +353,7 @@ if (!window.__ivvisualizer_initialized) {
       });
     }
 
-    // INTERRUPTOR DE ACCIÓN: DISPARAR BARRIDO DE CURVA DESDE LA WEB
+    // INTERRUPTOR DE ACCIÓN: DISPARAR BARRIDO DE CURVA CON PUNTOS CONFIGURADOS
     if (botonBarrido) {
         botonBarrido.addEventListener('click', async () => {
             if (!connectedCharacteristic) {
@@ -339,22 +365,19 @@ if (!window.__ivvisualizer_initialized) {
                 botonBarrido.disabled = true;
                 botonBarrido.innerText = "⏳ Midiendo...";
                 
-                // 1. Congelar telemetría normal y purgar buffers viejos
                 detenerPollingTelemetria();
                 modoBarridoActivo = true;
                 lineasBarridoAcumuladas = [];
                 bluetoothBufferTexto = "";
 
-                // 2. Extraer MSB y LSB de la variable global de puntos (ej: 255 -> 0x00, 0xFF)
+                // Extraer MSB y LSB de la variable global dinámica
                 const msb = (puntosBarridoConfig >> 8) & 0xFF;
                 const lsb = puntosBarridoConfig & 0xFF;
 
-                // Trama binaria solicitada: [0xAA, 0xC1, MSB, LSB]
                 const comandoBarrido = new Uint8Array([0xAA, 0xC1, msb, lsb]);
                 
-                // 3. Enviar comando al PIC24
                 await connectedCharacteristic.writeValue(comandoBarrido);
-                console.log(`Solicitado Barrido IV de ${puntosBarridoConfig} puntos.`);
+                console.log(`Solicitado Barrido IV dinámico de ${puntosBarridoConfig} puntos.`);
 
             } catch (e) {
                 console.error("Error al iniciar el barrido", e);
@@ -378,40 +401,31 @@ if (!window.__ivvisualizer_initialized) {
                 const iRaw = parseFloat(tokens[1]);
 
                 if (!isNaN(vRaw) && !isNaN(iRaw)) {
-                    // Aplicamos calibración local estricta de entrada
                     const vCalibrado = (vRaw * calibracion.V_IN_m) + calibracion.V_IN_n;
                     const iCalibrado = (iRaw * calibracion.I_IN_m) + calibracion.I_IN_n;
                     const pCalculada = vCalibrado * iCalibrado;
 
-                    // Guardamos estructurado para Chart.js {x: Voltaje, y: Variable}
                     nuevosPuntosIV.push({ x: vCalibrado, y: iCalibrado });
                     nuevosPuntosPV.push({ x: vCalibrado, y: pCalculada });
                 }
             }
         }
 
-        // Ordenamos los arrays por el eje X (Voltaje) de menor a mayor
-        // Esto evita líneas cruzadas raras si el PIC envía datos en desorden
         nuevosPuntosIV.sort((a, b) => a.x - b.x);
         nuevosPuntosPV.sort((a, b) => a.x - b.x);
 
-        // Volcar datos procesados en las gráficas independientes
         graficoIV.data.datasets[0].data = nuevosPuntosIV;
         graficoPV.data.datasets[0].data = nuevosPuntosPV;
 
-        // Forzar repintado inmediato de las interfaces gráficas
         graficoIV.update();
         graficoPV.update();
     }
 
-    // ==========================================
-    // 4. LÓGICA DINÁMICA DEL SLIDER Y COMANDOS BINARIOS
-    // ==========================================
+    // 4. LÓGICA DINÁMICA DEL SLIDER PRINCIPAL Y COMANDOS BINARIOS
     const configModos = {
-        MODO1: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "MPPT (Max Power Limit):",     byteModo: 0xB1, init: 500 }, // Modificado init
-        MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):",   byteModo: 0xB2, init: 50 },  // Modificado init
+        MODO1: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "MPPT (Max Power Limit):",     byteModo: 0xB1, init: 500 }, 
+        MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):",   byteModo: 0xB2, init: 50 },  
         MODO3: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty Cycle):",      byteModo: 0xB3, init: 0 },
-
     };
 
     async function enviarComandoBinario() {
@@ -433,7 +447,6 @@ if (!window.__ivvisualizer_initialized) {
         else if (modoActual === 'MODO3') {
             valorRaw16 = Math.round(valorSlider * 12);
         }
-   
 
         if (valorRaw16 < 0) valorRaw16 = 0;
         if (valorRaw16 > 65535) valorRaw16 = 65535;
@@ -459,8 +472,6 @@ if (!window.__ivvisualizer_initialized) {
         barraFijarVal.min = config.min;
         barraFijarVal.max = config.max;
         barraFijarVal.step = config.step;
-        
-        // ¡CAMBIADO!: Ahora arranca en el valor asignado a 'init' en lugar del mínimo
         barraFijarVal.value = config.init; 
 
         actualizarTextoSlider(config.texto, config.init, config.unidad);
@@ -488,14 +499,22 @@ if (!window.__ivvisualizer_initialized) {
         actualizarSliderDinámico();
     }
 
-    // 5. CONTROL DEL MODAL DE CONFIGURACIÓN (CALIBRACIÓN)
+    // 5. CONTROL DEL MODAL DE CONFIGURACIÓN AMPLIADO (CALIBRACIÓN + GRÁFICAS)
     const botonConfig = document.getElementById('botonConfig');
     const modalConfig = document.getElementById('modalConfig');
     const btnGuardarCal = document.getElementById('btnGuardarCal');
     const btnCancelarCal = document.getElementById('btnCancelarCal');
 
+    // Escuchar cambios en vivo del slider del modal
+    if (cfgPuntosBarrido && cfgPuntosBarridoText) {
+        cfgPuntosBarrido.addEventListener('input', () => {
+            cfgPuntosBarridoText.innerText = `${cfgPuntosBarrido.value} pts`;
+        });
+    }
+
     if (botonConfig && modalConfig) {
         botonConfig.addEventListener('click', () => {
+            // Cargar valores de calibración en los inputs
             document.getElementById('cal_c1').value = calibracion.V_IN_m;
             document.getElementById('cal_c2').value = calibracion.V_IN_n;
             document.getElementById('cal_c3').value = calibracion.I_IN_m;
@@ -504,6 +523,16 @@ if (!window.__ivvisualizer_initialized) {
             document.getElementById('cal_c6').value = calibracion.V_OUT_n;
             document.getElementById('cal_c7').value = calibracion.I_OUT_m;
             document.getElementById('cal_c8').value = calibracion.I_OUT_n;
+            
+            // Cargar valores de ejes y barrido en los selectores/slider
+            if (cfgMaxVoltaje) cfgMaxVoltaje.value = limitesGraficas.maxVoltaje;
+            if (cfgMaxCorriente) cfgMaxCorriente.value = limitesGraficas.maxCorriente;
+            if (cfgMaxPotencia) cfgMaxPotencia.value = limitesGraficas.maxPotencia;
+            if (cfgPuntosBarrido) {
+                cfgPuntosBarrido.value = puntosBarridoConfig;
+                cfgPuntosBarridoText.innerText = `${puntosBarridoConfig} pts`;
+            }
+
             modalConfig.style.display = 'flex';
         });
 
@@ -512,6 +541,7 @@ if (!window.__ivvisualizer_initialized) {
         });
 
         btnGuardarCal.addEventListener('click', () => {
+            // 1. Guardar constantes de calibración
             calibracion.V_IN_m = parseFloat(document.getElementById('cal_c1').value) || 0.0;
             calibracion.V_IN_n = parseFloat(document.getElementById('cal_c2').value) || 0.0;
             calibracion.I_IN_m = parseFloat(document.getElementById('cal_c3').value) || 0.0;
@@ -520,6 +550,29 @@ if (!window.__ivvisualizer_initialized) {
             calibracion.V_OUT_n = parseFloat(document.getElementById('cal_c6').value) || 0.0;
             calibracion.I_OUT_m = parseFloat(document.getElementById('cal_c7').value) || 0.0;
             calibracion.I_OUT_n = parseFloat(document.getElementById('cal_c8').value) || 0.0;
+            
+            // 2. Guardar límites de gráficas y puntos desde el DOM
+            if (cfgMaxVoltaje) limitesGraficas.maxVoltaje = parseInt(cfgMaxVoltaje.value, 10);
+            if (cfgMaxCorriente) limitesGraficas.maxCorriente = parseInt(cfgMaxCorriente.value, 10);
+            if (cfgMaxPotencia) limitesGraficas.maxPotencia = parseInt(cfgMaxPotencia.value, 10);
+            if (cfgPuntosBarrido) puntosBarridoConfig = parseInt(cfgPuntosBarrido.value, 10);
+
+            // 3. PERSISTENCIA EN LOCALSTORAGE (Para que no se borre al recargar)
+            localStorage.setItem('pv_calibracion', JSON.stringify(calibracion));
+            localStorage.setItem('pv_limites_graficas', JSON.stringify(limitesGraficas));
+            localStorage.setItem('pv_puntos_barrido', puntosBarridoConfig.toString());
+
+            // 4. APLICAR ESCALAS EN TIEMPO REAL A CHART.JS
+            graficoIV.options.scales.x.max = limitesGraficas.maxVoltaje;
+            graficoIV.options.scales.y.max = limitesGraficas.maxCorriente;
+            
+            graficoPV.options.scales.x.max = limitesGraficas.maxVoltaje;
+            graficoPV.options.scales.y.max = limitesGraficas.maxPotencia;
+
+            // Refrescar vistas de los charts de inmediato
+            graficoIV.update();
+            graficoPV.update();
+
             modalConfig.style.display = 'none';
         });
     }
