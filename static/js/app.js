@@ -50,7 +50,7 @@ if (!window.__ivvisualizer_initialized) {
     }
 
    
-// 2. INICIALIZAR GRÁFICAS SEPARADAS CON PUNTO DE OPERACIÓN EN VIVO
+// 2. INICIALIZAR GRÁFICAS SEPARADAS CON COLORES INTEGRADOS Y TOOLTIPS LIMPIOS
     let datosCurvaIV = [];    
     let datosCurvaPV = []; 
 
@@ -70,12 +70,12 @@ if (!window.__ivvisualizer_initialized) {
                 },
                 {
                     label: 'Live Operating Point',
-                    data: [], // Se llenará dinámicamente con un solo punto [{x: V, y: I}]
-                    borderColor: '#ff3d00',      // Color rojo/naranja brillante
-                    backgroundColor: '#ff3d00',
-                    pointRadius: 8,              // ¡Punto bien gordo!
+                    data: [], 
+                    borderColor: '#ffca28',      // CAMBIADO: Mismo amarillo de la curva I-V
+                    backgroundColor: '#ffca28',  // CAMBIADO: Mismo amarillo de la curva I-V
+                    pointRadius: 8,              
                     pointHoverRadius: 10,
-                    showLine: false              // Que no dibuje ninguna línea
+                    showLine: false              
                 }
             ]
         },
@@ -90,7 +90,12 @@ if (!window.__ivvisualizer_initialized) {
             plugins: { 
                 legend: { labels: { color: '#fff' } },
                 tooltip: {
+                    mode: 'nearest',
+                    intersect: true,
                     callbacks: {
+                        // Limpia la cabecera por defecto para evitar duplicar el valor X crudo
+                        title: function() { return ''; }, 
+                        // Muestra exclusivamente nuestra cadena de texto real procesada
                         label: function(context) {
                             const xVal = context.parsed.x.toFixed(2);
                             const yVal = context.parsed.y.toFixed(2);
@@ -119,12 +124,12 @@ if (!window.__ivvisualizer_initialized) {
                 },
                 {
                     label: 'Live Operating Point',
-                    data: [], // Se llenará dinámicamente con un solo punto [{x: V, y: P}]
-                    borderColor: '#ff3d00',      // Mismo color rojo/naranja brillante
-                    backgroundColor: '#ff3d00',
-                    pointRadius: 8,              // ¡Punto gordo!
+                    data: [], 
+                    borderColor: '#00e676',      // CAMBIADO: Mismo verde de la curva P-V
+                    backgroundColor: '#00e676',  // CAMBIADO: Mismo verde de la curva P-V
+                    pointRadius: 8,              
                     pointHoverRadius: 10,
-                    showLine: false              // Sin línea
+                    showLine: false              
                 }
             ]
         },
@@ -139,7 +144,12 @@ if (!window.__ivvisualizer_initialized) {
             plugins: { 
                 legend: { labels: { color: '#fff' } },
                 tooltip: {
+                    mode: 'nearest',
+                    intersect: true,
                     callbacks: {
+                        // Limpia la cabecera por defecto para evitar duplicar el valor X crudo
+                        title: function() { return ''; },
+                        // Muestra exclusivamente nuestra cadena de texto real procesada
                         label: function(context) {
                             const xVal = context.parsed.x.toFixed(2);
                             const yVal = context.parsed.y.toFixed(1);
@@ -151,8 +161,6 @@ if (!window.__ivvisualizer_initialized) {
             }
         }
     });
-
-
     
     // Variables de control Bluetooth, Flujo y Máquina de Estados
     let connectedCharacteristic = null;
