@@ -149,8 +149,7 @@
     <script src="../static/js/app.js"></script>
 
     <div id="modalConfig" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <h3>Calibration Constants</h3>
+        <div class="modal-content" style="max-width: 550px;"> <h3>Calibration Constants</h3>
             <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Adjust calibration constants of current and voltage sensors.</p>
             
             <div class="modal-grid">
@@ -188,6 +187,66 @@
                 </div>
             </div>
 
+            <div class="config-section" style="margin-top: 20px; border-top: 1px solid #444; padding-top: 15px;">
+                <h3 style="color: #ffca28; margin-bottom: 5px; font-size: 16px;">Chart Limits & Tracing Points</h3>
+                <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Set your solar panel's max scale and IV curves resolution.</p>
+                
+                <div class="modal-grid">
+                    <div class="input-field">
+                        <label>Max Voltage Axis:</label>
+                        <select id="cfgMaxVoltaje" style="padding: 8px; background: #2c2c35; border: 1px solid #555; border-radius: 8px; color: white; font-size: 14px;">
+                            <option value="10">10 V</option>
+                            <option value="20">20 V</option>
+                            <option value="30">30 V</option>
+                            <option value="40">40 V</option>
+                            <option value="50">50 V</option>
+                            <option value="60">60 V</option>
+                            <option value="70">70 V</option>
+                            <option value="80">80 V</option>
+                        </select>
+                    </div>
+                    <div class="input-field">
+                        <label>Max Current Axis:</label>
+                        <select id="cfgMaxCorriente" style="padding: 8px; background: #2c2c35; border: 1px solid #555; border-radius: 8px; color: white; font-size: 14px;">
+                            <option value="2">2 A</option>
+                            <option value="4">4 A</option>
+                            <option value="6">6 A</option>
+                            <option value="8">8 A</option>
+                            <option value="10">10 A</option>
+                            <option value="12">12 A</option>
+                            <option value="14">14 A</option>
+                            <option value="16">16 A</option>
+                            <option value="18">18 A</option>
+                            <option value="20">20 A</option>
+                        </select>
+                    </div>
+                    <div class="input-field">
+                        <label>Max Power Axis:</label>
+                        <select id="cfgMaxPotencia" style="padding: 8px; background: #2c2c35; border: 1px solid #555; border-radius: 8px; color: white; font-size: 14px;">
+                            <option value="100">100 W</option>
+                            <option value="200">200 W</option>
+                            <option value="300">300 W</option>
+                            <option value="400">400 W</option>
+                            <option value="500">500 W</option>
+                            <option value="600">600 W</option>
+                            <option value="700">700 W</option>
+                            <option value="800">800 W</option>
+                            <option value="900">900 W</option>
+                            <option value="1000">1000 W</option>
+                        </select>
+                    </div>
+                    <div class="input-field">
+                        <label>IV Curve Sweep Points:</label>
+                        <select id="cfgPuntosBarrido" style="padding: 8px; background: #2c2c35; border: 1px solid #555; border-radius: 8px; color: white; font-size: 14px;">
+                            <option value="50">50 points</option>
+                            <option value="100">100 points</option>
+                            <option value="150">150 points</option>
+                            <option value="200">200 points</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
                 <button id="btnGuardarCal" class="btn" style="background-color: #00e676;">Save</button>
                 <button id="btnCancelarCal" class="btn" style="background-color: #cfd8dc; color: #333;">Cancel</button>
@@ -202,22 +261,4 @@
         }
         .modal-content {
             background-color: #1e1e24; border: 1px solid #444; border-radius: 15px;
-            padding: 20px; width: 90%; max-width: 500px; color: white; text-align: left;
-            box-shadow: 0px 4px 20px rgba(0,0,0,0.5);
-        }
-        .modal-content h3 { margin-top: 0; color: #ffca28; }
-        .modal-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
-        }
-        .input-field { display: flex; flex-direction: column; gap: 4px; }
-        .input-field label { font-size: 12px; color: #aaa; }
-        .input-field input {
-            padding: 8px; background: #2c2c35; border: 1px solid #555;
-            border-radius: 8px; color: white; font-size: 14px;
-        }
-        @media (max-width: 480px) {
-            .modal-grid { grid-template-columns: 1fr; }
-        }
-    </style>
-</body>
-</html>
+            padding: 20px; width: 90
