@@ -11,7 +11,7 @@ if (!window.__ivvisualizer_initialized) {
   };
 
   // Parámetro de configuración para el barrido de curva
-  let puntosBarridoConfig = 100; 
+  let puntosBarridoConfig = 255; 
 
   document.addEventListener('DOMContentLoaded', () => {
     // 1. ENLACES AL DOM (HTML)
@@ -336,17 +336,18 @@ if (!window.__ivvisualizer_initialized) {
         graficoPV.update();
     }
 
-    // 4. LÓGICA DINÁMICA DEL SLIDER Y COMANDOS BINARIOS EN ESPAÑOL RECONFIGURADOS
+    // ==========================================
+    // 4. LÓGICA DINÁMICA DEL SLIDER Y COMANDOS BINARIOS
+    // ==========================================
     const configModos = {
-        // MODO MPPT: Ahora habilitado de 0 a 400W para limitar la potencia máxima de entrada
         MODO1: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "MPPT (Max Power Limit):",     byteModo: 0xB1 },
         MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):",   byteModo: 0xB2 },
         MODO3: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty Cycle):",      byteModo: 0xB3 },
+        MODO4: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "Setpoint (Input Power):",     byteModo: 0xB4 }
     };
 
-    // Calcula el valor RAW de 16 bits según tu mapa de firmware y envía la trama [0xAA, Modo, MSB, LSB]
     async function enviarComandoBinario() {
-        if (!connectedCharacteristic) return;
+        if (!connectedCharacteristic || modoBarridoActivo) return;
 
         const modoActual = selectorModo.value;
         const config = configModos[modoActual];
@@ -355,36 +356,31 @@ if (!window.__ivvisualizer_initialized) {
         const valorSlider = parseFloat(barraFijarVal.value) || 0;
         let valorRaw16 = 0;
 
-        // Procesamiento matemático basado en tu mapa de control real
         if (modoActual === 'MODO1') {
-            // MODO MPPT: Multiplica la potencia límite seleccionada (0-400W) por 40 para el PIC24
-            valorRaw16 = Math.round(valorSlider * 84);
+            valorRaw16 = Math.round(valorSlider * 40);
         } 
         else if (modoActual === 'MODO2') {
-            // VOLTAGE MODE: Despejamos el valor RAW usando la calibración -> raw = (V - n) / m
             valorRaw16 = Math.round((valorSlider - calibracion.V_IN_n) / calibracion.V_IN_m);
         } 
         else if (modoActual === 'MODO3') {
-            // DUTY CYCLE MODE: Convertimos el % del slider al rango de trabajo del PIC24 (0 - 1200)
             valorRaw16 = Math.round(valorSlider * 12);
         }
+        else if (modoActual === 'MODO4') {
+            valorRaw16 = Math.round(valorSlider);
+        }
 
-        // Protección contra desbordamientos (Entero de 16 bits sin signo: 0 a 65535)
         if (valorRaw16 < 0) valorRaw16 = 0;
         if (valorRaw16 > 65535) valorRaw16 = 65535;
 
-        // Descomponer en MSB (Byte alto) y LSB (Byte bajo)
         const msb = (valorRaw16 >> 8) & 0xFF;
         const lsb = valorRaw16 & 0xFF;
 
-        // Construcción de la trama binaria de 4 bytes
         const tramaComando = new Uint8Array([0xAA, config.byteModo, msb, lsb]);
 
         try {
             await connectedCharacteristic.writeValue(tramaComando);
-            console.log(`Enviado -> Modo: 0x${config.byteModo.toString(16).toUpperCase()}, Valor Raw: ${valorRaw16} (MSB: 0x${msb.toString(16).toUpperCase()}, LSB: 0x${lsb.toString(16).toUpperCase()})`);
         } catch (e) {
-            console.warn("Error enviando comando binario al PIC24", e);
+            console.warn("Error enviando comando binario", e);
         }
     }
 
@@ -397,11 +393,8 @@ if (!window.__ivvisualizer_initialized) {
         barraFijarVal.min = config.min;
         barraFijarVal.max = config.max;
         barraFijarVal.step = config.step;
-        
-        // Forzamos que se mantenga el valor mínimo inicial del modo seleccionado (0W para MPPT, 0% para Duty, etc.)
         barraFijarVal.value = config.min;
 
-        // Como ahora todos los modos están habilitados, siempre actualizamos el texto de forma dinámica
         actualizarTextoSlider(config.texto, config.min, config.unidad);
     }
 
@@ -410,26 +403,20 @@ if (!window.__ivvisualizer_initialized) {
     }
 
     if (selectorModo && barraFijarVal) {
-        // Evento al cambiar el selector de modo
         selectorModo.addEventListener('change', async () => {
             actualizarSliderDinámico();
             await enviarComandoBinario();
         });
 
-        // Evento dinámico mientras arrastras el slider
         barraFijarVal.addEventListener('input', () => {
             const spanValor = document.getElementById('valorSliderText');
-            if (spanValor) {
-                spanValor.innerText = barraFijarVal.value;
-            }
+            if (spanValor) spanValor.innerText = barraFijarVal.value;
         });
 
-        // Evento definitivo al soltar el slider
         barraFijarVal.addEventListener('change', async () => {
             await enviarComandoBinario();
         });
 
-        // Llama a la inicialización dinámica basada en el "selected" asignado por defecto en el HTML
         actualizarSliderDinámico();
     }
 
@@ -449,7 +436,6 @@ if (!window.__ivvisualizer_initialized) {
             document.getElementById('cal_c6').value = calibracion.V_OUT_n;
             document.getElementById('cal_c7').value = calibracion.I_OUT_m;
             document.getElementById('cal_c8').value = calibracion.I_OUT_n;
-            
             modalConfig.style.display = 'flex';
         });
 
@@ -466,11 +452,8 @@ if (!window.__ivvisualizer_initialized) {
             calibracion.V_OUT_n = parseFloat(document.getElementById('cal_c6').value) || 0.0;
             calibracion.I_OUT_m = parseFloat(document.getElementById('cal_c7').value) || 0.0;
             calibracion.I_OUT_n = parseFloat(document.getElementById('cal_c8').value) || 0.0;
-
-            console.log("Constantes actualizadas con éxito en memoria web:", calibracion);
             modalConfig.style.display = 'none';
         });
     }
-
   });
-}    
+}
