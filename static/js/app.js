@@ -391,7 +391,7 @@ if (!window.__ivvisualizer_initialized) {
 
             try {
                 botonBarrido.disabled = true;
-                botonBarrido.innerText = "⏳ Midiendo...";
+                botonBarrido.innerText = "⏳ Measuring...";
                 
                 detenerPollingTelemetria();
                 modoBarridoActivo = true;
