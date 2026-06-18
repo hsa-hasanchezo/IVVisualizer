@@ -26,6 +26,9 @@
         .readout.mini { padding: 10px 5px; font-size: 13px; text-align: center; border-radius: 10px; }
         .readout.mini .value { font-size: 16px; font-weight: bold; margin-top: 4px; }
 
+        /* Estilo para los contenedores independientes de las gráficas */
+        .canvas-container { height: 280px; margin-bottom: 15px; width: 100%; }
+
         /* --- RESPONSIVE DESIGN (Media Queries) --- */
 
         /* Tablets y pantallas medianas (Menos de 768px) */
@@ -51,8 +54,8 @@
             .readout.mini .label { font-size: 11px; }
             .readout.mini .value { font-size: 14px; }
             
-            /* Evita que el contenedor de la gráfica colapse en pantallas muy pequeñas */
-            .canvas-container { height: 260px; } 
+            /* Evita que los contenedores de las gráficas colapsen en pantallas muy pequeñas */
+            .canvas-container { height: 240px; } 
             
             h2 { font-size: 1.2rem; text-align: center; }
         }
@@ -74,17 +77,17 @@
                 <select id="selectorModo">
                     <option value="MODO1">MPPT control mode</option>
                     <option value="MODO2">Input voltage control mode</option>
-                    <option value="MODO3" selected>Dyty cycle control mode</option>
+                    <option value="MODO3" selected>Duty cycle control mode</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <label id="labelSlider" for="barraFijarVal">Setpoint value: <span id="valorSliderText">50</span>%</label>
-                <input type="range" id="barraFijarVal" min="0" max="100" value="50" disabled>
+                <label id="labelSlider" for="barraFijarVal">Setpoint (Duty Cycle): <span id="valorSliderText">0</span>%</label>
+                <input type="range" id="barraFijarVal" min="0" max="100" value="0" disabled>
             </div>
 
             <div style="width: 100%;">
-                <button id="IV trace" class="btn" style="width: 100%;" disabled>IV trace</button>
+                <button id="botonBarrido" class="btn" style="width: 100%;">Obtener IV</button>
             </div>
 
             <div class="readouts-4">
@@ -128,6 +131,10 @@
         
         <div class="canvas-container" style="margin-top:20px;">
             <canvas id="graficoIV"></canvas>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="graficoPV"></canvas>
         </div>
 
         <div class="chart-actions" style="margin-top:10px;">
@@ -204,7 +211,6 @@
         padding: 8px; background: #2c2c35; border: 1px solid #555;
         border-radius: 8px; color: white; font-size: 14px;
     }
-    /* En móviles se pone en 1 sola columna para que no se aplaste */
     @media (max-width: 480px) {
         .modal-grid { grid-template-columns: 1fr; }
     }
