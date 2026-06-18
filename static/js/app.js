@@ -43,6 +43,8 @@ if (!window.__ivvisualizer_initialized) {
     // 1. ENLACES AL DOM (HTML)
     const botonConectar = document.getElementById('botonConectar');
     const botonBarrido = document.getElementById('botonBarrido'); 
+    const botonFreeze = document.getElementById('botonFreeze'); // <- NUEVO
+    const botonClear = document.getElementById('botonClear');   // <- NUEVO
     const selectorModo = document.getElementById('selectorModo');
     const barraFijarVal = document.getElementById('barraFijarVal');
     const labelSlider = document.getElementById('labelSlider');
@@ -108,6 +110,17 @@ if (!window.__ivvisualizer_initialized) {
                     pointRadius: 8,              
                     pointHoverRadius: 10,
                     showLine: false              
+                },
+                {
+                    label: 'Frozen Curve', // <- NUEVO DATASET CONGELADO (Índice 2)
+                    data: [],
+                    borderColor: 'rgba(144, 164, 174, 0.6)', // Gris azulado tenue
+                    backgroundColor: 'rgba(144, 164, 174, 0.05)',
+                    borderWidth: 2,
+                    borderDash: [6, 4], // Línea discontinua para mejor visualización
+                    tension: 0.2,
+                    pointRadius: 0,
+                    pointHoverRadius: 0
                 }
             ]
         },
@@ -129,7 +142,9 @@ if (!window.__ivvisualizer_initialized) {
                         label: function(context) {
                             const xVal = context.parsed.x.toFixed(2);
                             const yVal = context.parsed.y.toFixed(2);
-                            const prefix = context.datasetIndex === 1 ? ' LIVE ->' : '';
+                            let prefix = '';
+                            if (context.datasetIndex === 1) prefix = ' LIVE ->';
+                            if (context.datasetIndex === 2) prefix = ' FROZEN ->';
                             return `${prefix} Voltage: ${xVal} V | Current: ${yVal} A`;
                         }
                     }
@@ -160,6 +175,17 @@ if (!window.__ivvisualizer_initialized) {
                     pointRadius: 8,              
                     pointHoverRadius: 10,
                     showLine: false              
+                },
+                {
+                    label: 'Frozen Curve', // <- NUEVO DATASET CONGELADO (Índice 2)
+                    data: [],
+                    borderColor: 'rgba(144, 164, 174, 0.6)', 
+                    backgroundColor: 'rgba(144, 164, 174, 0.05)',
+                    borderWidth: 2,
+                    borderDash: [6, 4],
+                    tension: 0.2,
+                    pointRadius: 0,
+                    pointHoverRadius: 0
                 }
             ]
         },
@@ -181,7 +207,9 @@ if (!window.__ivvisualizer_initialized) {
                         label: function(context) {
                             const xVal = context.parsed.x.toFixed(2);
                             const yVal = context.parsed.y.toFixed(1);
-                            const prefix = context.datasetIndex === 1 ? ' EN VIVO ->' : '';
+                            let prefix = '';
+                            if (context.datasetIndex === 1) prefix = ' EN VIVO ->';
+                            if (context.datasetIndex === 2) prefix = ' CONGELADO ->';
                             return `${prefix} Voltaje: ${xVal} V | Potencia: ${yVal} W`;
                         }
                     }
@@ -285,7 +313,7 @@ if (!window.__ivvisualizer_initialized) {
                             lineasBarridoAcumuladas = [];
                             modoBarridoActivo = false;
                             if (botonBarrido) {
-                                botonBarrido.innerText = "Obtener IV";
+                                botonBarrido.innerText = "Get I-V Curve";
                                 botonBarrido.disabled = false;
                             }
                             iniciarPollingTelemetria(); 
@@ -382,10 +410,52 @@ if (!window.__ivvisualizer_initialized) {
             } catch (e) {
                 console.error("Error al iniciar el barrido", e);
                 botonBarrido.disabled = false;
-                botonBarrido.innerText = "Obtener IV";
+                botonBarrido.innerText = "Get I-V Curve";
                 modoBarridoActivo = false;
                 iniciarPollingTelemetria();
             }
+        });
+    }
+
+    // Escuchador de Acción: FREEZE CURVE (NUEVO)
+    if (botonFreeze) {
+        botonFreeze.addEventListener('click', () => {
+            // Copiar los datos actuales medidos (Dataset 0) al dataset congelado (Dataset 2)
+            graficoIV.data.datasets[2].data = [...graficoIV.data.datasets[0].data];
+            graficoPV.data.datasets[2].data = [...graficoPV.data.datasets[0].data];
+
+            // Limpiar las curvas activas locales y del gráfico para obligar una nueva medición limpia
+            datosCurvaIV = [];
+            datosCurvaPV = [];
+            graficoIV.data.datasets[0].data = [];
+            graficoPV.data.datasets[0].data = [];
+
+            // Refrescar render en pantalla
+            graficoIV.update();
+            graficoPV.update();
+            console.log("Curva guardada en memoria estática secundaria (gris). Ready para comparar.");
+        });
+    }
+
+    // Escuchador de Acción: CLEAR CURVE (NUEVO - Deja la web tal y como inicia)
+    if (botonClear) {
+        botonClear.addEventListener('click', () => {
+            // Vaciar todas las colecciones de datos (Activas, Puntos de operación en vivo y Congeladas)
+            datosCurvaIV = [];
+            datosCurvaPV = [];
+
+            graficoIV.data.datasets[0].data = []; // I-V Curve
+            graficoIV.data.datasets[1].data = []; // Operating Point
+            graficoIV.data.datasets[2].data = []; // Frozen Curve
+
+            graficoPV.data.datasets[0].data = []; // P-V Curve
+            graficoPV.data.datasets[1].data = []; // Operating Point
+            graficoPV.data.datasets[2].data = []; // Frozen Curve
+
+            // Forzar actualización total
+            graficoIV.update();
+            graficoPV.update();
+            console.log("Gráficos reseteados por completo a su estado inicial.");
         });
     }
 
@@ -414,8 +484,11 @@ if (!window.__ivvisualizer_initialized) {
         nuevosPuntosIV.sort((a, b) => a.x - b.x);
         nuevosPuntosPV.sort((a, b) => a.x - b.x);
 
-        graficoIV.data.datasets[0].data = nuevosPuntosIV;
-        graficoPV.data.datasets[0].data = nuevosPuntosPV;
+        datosCurvaIV = nuevosPuntosIV;
+        datosCurvaPV = nuevosPuntosPV;
+
+        graficoIV.data.datasets[0].data = datosCurvaIV;
+        graficoPV.data.datasets[0].data = datosCurvaPV;
 
         graficoIV.update();
         graficoPV.update();
@@ -425,7 +498,7 @@ if (!window.__ivvisualizer_initialized) {
     const configModos = {
         MODO1: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "MPPT (Max Power Limit):",     byteModo: 0xB1, init: 500 }, 
         MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):",   byteModo: 0xB2, init: 50 },  
-        MODO3: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty Cycle):",      byteModo: 0xB3, init: 0 },
+        MODO3: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty Cycle):",       byteModo: 0xB3, init: 0 },
     };
 
     async function enviarComandoBinario() {
@@ -459,7 +532,7 @@ if (!window.__ivvisualizer_initialized) {
         try {
             await connectedCharacteristic.writeValue(tramaComando);
         } catch (e) {
-            console.warn("Error enviando comando binario", e);
+            console.warn("Error sending binary command", e);
         }
     }
 
@@ -577,4 +650,4 @@ if (!window.__ivvisualizer_initialized) {
         });
     }
   });
-}
+} 
