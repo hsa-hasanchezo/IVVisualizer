@@ -113,7 +113,7 @@ if (!window.__ivvisualizer_initialized) {
                     showLine: false              
                 },
                 {
-                    label: 'Frozen Curve', // <- NUEVO DATASET CONGELADO (Índice 2)
+                    label: 'Frozen I-V Curve', // <- NUEVO DATASET CONGELADO (Índice 2)
                     data: [],
                     borderColor: 'rgba(144, 164, 174, 0.6)', // Gris azulado tenue
                     backgroundColor: 'rgba(144, 164, 174, 0.05)',
@@ -178,7 +178,7 @@ if (!window.__ivvisualizer_initialized) {
                     showLine: false              
                 },
                 {
-                    label: 'Frozen Curve', // <- NUEVO DATASET CONGELADO (Índice 2)
+                    label: 'Frozen P-V Curve', // <- NUEVO DATASET CONGELADO (Índice 2)
                     data: [],
                     borderColor: 'rgba(144, 164, 174, 0.6)', 
                     backgroundColor: 'rgba(144, 164, 174, 0.05)',
@@ -209,9 +209,9 @@ if (!window.__ivvisualizer_initialized) {
                             const xVal = context.parsed.x.toFixed(2);
                             const yVal = context.parsed.y.toFixed(1);
                             let prefix = '';
-                            if (context.datasetIndex === 1) prefix = ' EN VIVO ->';
-                            if (context.datasetIndex === 2) prefix = ' CONGELADO ->';
-                            return `${prefix} Voltaje: ${xVal} V | Potencia: ${yVal} W`;
+                            if (context.datasetIndex === 1) prefix = 'LIVE:';
+                            if (context.datasetIndex === 2) prefix = 'FROZEN:';
+                            return `${prefix} Voltage: ${xVal} V | Power: ${yVal} W`;
                         }
                     }
                 }
