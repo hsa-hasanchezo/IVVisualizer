@@ -37,6 +37,42 @@
             width: 100%; 
         }
 
+        /* --- Estilos para la Tabla de Parámetros Fotovoltaicos --- */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            border: 1px solid #444;
+        }
+        .pv-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #1e1e24;
+            color: white;
+            font-size: 14px;
+            text-align: center;
+        }
+        .pv-data-table th, .pv-data-table td {
+            padding: 12px 10px;
+            border: 1px solid #444;
+        }
+        .pv-data-table th {
+            background-color: #2c2c35;
+            font-weight: bold;
+            color: #ffca28;
+        }
+        .pv-data-table tr:hover {
+            background-color: #25252d;
+        }
+        .pv-data-table td:first-child {
+            font-weight: bold;
+            text-align: left;
+            background-color: #2c2c35;
+            width: 120px;
+        }
+
         /* --- RESPONSIVE DESIGN (Media Queries) --- */
 
         /* Tablets y pantallas medianas (Menos de 768px) */
@@ -48,6 +84,7 @@
             .readout.mini { padding: 8px 4px; }
             .readout.mini .label { font-size: 12px; }
             .readout.mini .value { font-size: 15px; }
+            .pv-data-table th, .pv-data-table td { padding: 8px 5px; font-size: 12px; }
         }
 
         /* Teléfonos móviles (Menos de 480px) */
@@ -69,6 +106,7 @@
             .canvas-container { height: 320px; } 
             
             h2 { font-size: 1.2rem; text-align: center; }
+            .pv-data-table th, .pv-data-table td { padding: 6px 4px; font-size: 11px; }
         }
     </style>
 </head>
@@ -150,6 +188,42 @@
             <canvas id="graficoPV"></canvas>
         </div>
 
+        <div class="table-container">
+            <table class="pv-data-table">
+                <thead>
+                    <tr>
+                        <th>Curve Type</th>
+                        <th>V<sub>OC</sub> (V)</th>
+                        <th>I<sub>SC</sub> (A)</th>
+                        <th>V<sub>MPP</sub> (V)</th>
+                        <th>I<sub>MPP</sub> (A)</th>
+                        <th>P<sub>MPP</sub> (W)</th>
+                        <th>FF (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Current I-V</td>
+                        <td id="tblCurVoc">-</td>
+                        <td id="tblCurIsc">-</td>
+                        <td id="tblCurVmpp">-</td>
+                        <td id="tblCurImpp">-</td>
+                        <td id="tblCurPmpp">-</td>
+                        <td id="tblCurFf">-</td>
+                    </tr>
+                    <tr>
+                        <td>Frozen I-V</td>
+                        <td id="tblFrzVoc">-</td>
+                        <td id="tblFrzIsc">-</td>
+                        <td id="tblFrzVmpp">-</td>
+                        <td id="tblFrzImpp">-</td>
+                        <td id="tblFrzPmpp">-</td>
+                        <td id="tblFrzFf">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
         <div class="chart-actions" style="margin-top:10px;">
             <button id="botonDownloadCSV" class="btn btn-csv">Download CSV</button>
         </div>
@@ -198,93 +272,4 @@
 
             <div class="config-section" style="margin-top: 20px; border-top: 1px solid #444; padding-top: 15px;">
                 <h3 style="color: #ffca28; margin-bottom: 5px; font-size: 16px;">Chart Limits & Tracing Points</h3>
-                <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Set your solar panel's max scale and IV curves resolution.</p>
-                
-                <div class="modal-grid">
-                    <div class="input-field">
-                        <label>Max Voltage Axis:</label>
-                        <select id="cfgMaxVoltaje" style="padding: 8px; background: #2c2c35; border: 1px solid #555; border-radius: 8px; color: white; font-size: 14px;">
-                            <option value="10">10 V</option>
-                            <option value="20">20 V</option>
-                            <option value="30">30 V</option>
-                            <option value="40">40 V</option>
-                            <option value="50">50 V</option>
-                            <option value="60">60 V</option>
-                            <option value="70">70 V</option>
-                            <option value="80">80 V</option>
-                        </select>
-                    </div>
-                    <div class="input-field">
-                        <label>Max Current Axis:</label>
-                        <select id="cfgMaxCorriente" style="padding: 8px; background: #2c2c35; border: 1px solid #555; border-radius: 8px; color: white; font-size: 14px;">
-                            <option value="2">2 A</option>
-                            <option value="4">4 A</option>
-                            <option value="6">6 A</option>
-                            <option value="8">8 A</option>
-                            <option value="10">10 A</option>
-                            <option value="12">12 A</option>
-                            <option value="14">14 A</option>
-                            <option value="16">16 A</option>
-                            <option value="18">18 A</option>
-                            <option value="20">20 A</option>
-                        </select>
-                    </div>
-                    <div class="input-field" style="grid-column: span 2;">
-                        <label>Max Power Axis:</label>
-                        <select id="cfgMaxPotencia" style="padding: 8px; background: #2c2c35; border: 1px solid #555; border-radius: 8px; color: white; font-size: 14px; width: 100%;">
-                            <option value="100">100 W</option>
-                            <option value="200">200 W</option>
-                            <option value="300">300 W</option>
-                            <option value="400">400 W</option>
-                            <option value="500">500 W</option>
-                            <option value="600">600 W</option>
-                            <option value="700">700 W</option>
-                            <option value="800">800 W</option>
-                            <option value="900">900 W</option>
-                            <option value="1000">1000 W</option>
-                        </select>
-                    </div>
-                    <div class="input-field" style="grid-column: span 2; margin-top: 5px;">
-                        <label style="display: flex; justify-content: space-between;">
-                            <span>IV Curve Sweep Points:</span>
-                            <span id="cfgPuntosBarridoText" style="color: #ffca28; font-weight: bold;">100 pts</span>
-                        </label>
-                        <input type="range" id="cfgPuntosBarrido" min="50" max="200" step="1" value="100" style="width: 100%; background: #2c2c35; border-radius: 10px; margin-top: 5px;">
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
-                <button id="btnGuardarCal" class="btn" style="background-color: #00e676;">Save</button>
-                <button id="btnCancelarCal" class="btn" style="background-color: #cfd8dc; color: #333;">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <style>
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 1000;
-        }
-        .modal-content {
-            background-color: #1e1e24; border: 1px solid #444; border-radius: 15px;
-            padding: 20px; width: 90%; max-width: 480px; color: white; text-align: left;
-            box-shadow: 0px 4px 20px rgba(0,0,0,0.5);
-        }
-        .modal-content h3 { margin-top: 0; color: #ffca28; }
-        .modal-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
-        }
-        .input-field { display: flex; flex-direction: column; gap: 4px; }
-        .input-field label { font-size: 12px; color: #aaa; }
-        .input-field input {
-            padding: 8px; background: #2c2c35; border: 1px solid #555;
-            border-radius: 8px; color: white; font-size: 14px;
-        }
-        @media (max-width: 480px) {
-            .modal-grid { grid-template-columns: 1fr; }
-            .modal-grid .input-field { grid-column: auto !important; }
-        }
-    </style>
-</body>
-</html>
+                <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">
