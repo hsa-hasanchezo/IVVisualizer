@@ -251,37 +251,41 @@ if (!window.__ivvisualizer_initialized) {
         }
     }
 
+
     // FUNCIÓN AUXILIAR PARA CALCULAR Y MOSTRAR LOS PARÁMETROS EN LA TABLA
     function calcularYMostrarParametros(puntosIV, tipo) {
         // 'tipo' puede ser 'viva' o 'frozen'
-        const prefix = tipo === 'viva' ? 'viva' : 'frozen';
-
+        // Mapeamos al prefijo exacto del HTML: 'tblCur' para la actual, 'tblFrz' para la congelada
+        const prefix = tipo === 'viva' ? 'tblCur' : 'tblFrz';
+    
         const elVoc = document.getElementById(`${prefix}Voc`);
         const elIsc = document.getElementById(`${prefix}Isc`);
-        const elPmax = document.getElementById(`${prefix}Pmax`);
         const elVmpp = document.getElementById(`${prefix}Vmpp`);
         const elImpp = document.getElementById(`${prefix}Impp`);
-
+        const elPmpp = document.getElementById(`${prefix}Pmpp`);
+        const elFf = document.getElementById(`${prefix}Ff`); // <- Añadido Fill Factor
+    
         if (!puntosIV || puntosIV.length === 0) {
             if (elVoc) elVoc.innerText = "-";
             if (elIsc) elIsc.innerText = "-";
-            if (elPmax) elPmax.innerText = "-";
             if (elVmpp) elVmpp.innerText = "-";
             if (elImpp) elImpp.innerText = "-";
+            if (elPmpp) elPmpp.innerText = "-";
+            if (elFf) elFf.innerText = "-";
             return;
         }
-
-        // 1. ISC (Corriente de cortocircuito): Corriente aproximada a V = 0 (primer punto ordenado por X)
+    
+        // 1. ISC: Corriente a V mas cercana a 0 (primer punto ordenado por X)
         let isc = puntosIV[0].y;
-
-        // 2. VOC (Voltaje de circuito abierto): Voltaje aproximado a I = 0 (último punto del barrido)
+    
+        // 2. VOC: Voltaje a I mas cercana a 0 (último punto del barrido)
         let voc = puntosIV[puntosIV.length - 1].x;
-
+    
         // 3. MPP (Maximum Power Point)
         let pMax = 0;
         let vMpp = 0;
         let iMpp = 0;
-
+    
         puntosIV.forEach(punto => {
             let potencia = punto.x * punto.y;
             if (potencia > pMax) {
@@ -290,14 +294,23 @@ if (!window.__ivvisualizer_initialized) {
                 iMpp = punto.y;
             }
         });
+    
+        // 4. Calcular Fill Factor (FF)
+        let ff = 0;
+        if (voc > 0 && isc > 0) {
+            ff = (pMax / (voc * isc)) * 100;
+        }
 
-        // Escribir datos formateados en la tabla
-        if (elVoc) elVoc.innerText = voc.toFixed(2) + " V";
-        if (elIsc) elIsc.innerText = isc.toFixed(2) + " A";
-        if (elPmax) elPmax.innerText = pMax.toFixed(1) + " W";
-        if (elVmpp) elVmpp.innerText = vMpp.toFixed(2) + " V";
-        if (elImpp) elImpp.innerText = iMpp.toFixed(2) + " A";
-    }
+    // Escribir datos formateados en la tabla coincidiendo con el HTML
+    if (elVoc) elVoc.innerText = voc.toFixed(2);
+    if (elIsc) elIsc.innerText = isc.toFixed(2);
+    if (elVmpp) elVmpp.innerText = vMpp.toFixed(2);
+    if (elImpp) elImpp.innerText = iMpp.toFixed(2);
+    if (elPmpp) elPmpp.innerText = pMax.toFixed(1);
+    if (elFf) elFf.innerText = ff.toFixed(1);
+}
+
+    
 
     // 3. LÓGICA DE CONEXIÓN BLUETOOTH + PROCESAMIENTO MULTI-MODO
     if (botonConectar && hasWebBluetooth) {
