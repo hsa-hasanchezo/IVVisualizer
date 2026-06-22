@@ -310,18 +310,18 @@
                 <h3 style="color: #ffca28; margin-bottom: 5px; font-size: 16px;">Chart Limits & Tracing Points</h3>
                 <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Adjust the maximum scale limits for axes and number of points.</p>
                 
-                <div class="modal-grid">
+               <div class="modal-grid">
                     <div class="input-field">
                         <label>Max Voltage (V):</label>
-                        <input type="number" id="cfgMaxVoltaje" min="10" max="50" step="10" value="40">
+                        <input type="number" id="cfgMaxVoltaje" min="10" max="50" step="10" value="40" onkeydown="return false;">
                     </div>
                     <div class="input-field">
                         <label>Max Current (A):</label>
-                        <input type="number" id="cfgMaxCorriente" min="2" max="20" step="2" value="14">
+                        <input type="number" id="cfgMaxCorriente" min="2" max="20" step="2" value="10" onkeydown="return false;">
                     </div>
                     <div class="input-field" style="grid-column: span 2;">
                         <label>Max Power (W):</label>
-                        <input type="number" id="cfgMaxPotencia" min="100" max="1000" step="100" value="500">
+                        <input type="number" id="cfgMaxPotencia" min="100" max="1000" step="100" value="500" onkeydown="return false;">
                     </div>
                     <div class="input-field" style="grid-column: span 2; margin-top: 10px;">
                         <label>Sweep Resolution: <span id="cfgPuntosBarridoText" style="color:#ffca28;">100 pts</span></label>
