@@ -88,6 +88,7 @@ if (!window.__ivvisualizer_initialized) {
     // 2. INICIALIZAR GRÁFICAS SEPARADAS CON LÍMITES DINÁMICOS
     let datosCurvaIV = [];    
     let datosCurvaPV = []; 
+    let datosCurvaIV_Frozen = []; // Conservar copia de datos congelados para recalculado de tabla
 
     const graficoIV = new Chart(ctxIV, {
         type: 'line',
@@ -248,6 +249,54 @@ if (!window.__ivvisualizer_initialized) {
             clearInterval(loopTelemetria);
             loopTelemetria = null;
         }
+    }
+
+    // FUNCIÓN AUXILIAR PARA CALCULAR Y MOSTRAR LOS PARÁMETROS EN LA TABLA
+    function calcularYMostrarParametros(puntosIV, tipo) {
+        // 'tipo' puede ser 'viva' o 'frozen'
+        const prefix = tipo === 'viva' ? 'viva' : 'frozen';
+
+        const elVoc = document.getElementById(`${prefix}Voc`);
+        const elIsc = document.getElementById(`${prefix}Isc`);
+        const elPmax = document.getElementById(`${prefix}Pmax`);
+        const elVmpp = document.getElementById(`${prefix}Vmpp`);
+        const elImpp = document.getElementById(`${prefix}Impp`);
+
+        if (!puntosIV || puntosIV.length === 0) {
+            if (elVoc) elVoc.innerText = "-";
+            if (elIsc) elIsc.innerText = "-";
+            if (elPmax) elPmax.innerText = "-";
+            if (elVmpp) elVmpp.innerText = "-";
+            if (elImpp) elImpp.innerText = "-";
+            return;
+        }
+
+        // 1. ISC (Corriente de cortocircuito): Corriente aproximada a V = 0 (primer punto ordenado por X)
+        let isc = puntosIV[0].y;
+
+        // 2. VOC (Voltaje de circuito abierto): Voltaje aproximado a I = 0 (último punto del barrido)
+        let voc = puntosIV[puntosIV.length - 1].x;
+
+        // 3. MPP (Maximum Power Point)
+        let pMax = 0;
+        let vMpp = 0;
+        let iMpp = 0;
+
+        puntosIV.forEach(punto => {
+            let potencia = punto.x * punto.y;
+            if (potencia > pMax) {
+                pMax = potencia;
+                vMpp = punto.x;
+                iMpp = punto.y;
+            }
+        });
+
+        // Escribir datos formateados en la tabla
+        if (elVoc) elVoc.innerText = voc.toFixed(2) + " V";
+        if (elIsc) elIsc.innerText = isc.toFixed(2) + " A";
+        if (elPmax) elPmax.innerText = pMax.toFixed(1) + " W";
+        if (elVmpp) elVmpp.innerText = vMpp.toFixed(2) + " V";
+        if (elImpp) elImpp.innerText = iMpp.toFixed(2) + " A";
     }
 
     // 3. LÓGICA DE CONEXIÓN BLUETOOTH + PROCESAMIENTO MULTI-MODO
@@ -418,32 +467,40 @@ if (!window.__ivvisualizer_initialized) {
         });
     }
 
-    // Escuchador de Acción: FREEZE CURVE (NUEVO)
+    // Escuchador de Acción: FREEZE CURVE (MODIFICADO)
     if (botonFreeze) {
         botonFreeze.addEventListener('click', () => {
             // Copiar los datos actuales medidos (Dataset 0) al dataset congelado (Dataset 2)
             graficoIV.data.datasets[2].data = [...graficoIV.data.datasets[0].data];
             graficoPV.data.datasets[2].data = [...graficoPV.data.datasets[0].data];
 
-            // Limpiar las curvas activas locales y del gráfico para obligar una nueva medición limpia
+            // Duplicar en memoria el array local para conservar cálculos de la tabla frozen
+            datosCurvaIV_Frozen = [...datosCurvaIV];
+
+            // Calcular y mover los parámetros numéricos a la fila Frozen de la tabla
+            calcularYMostrarParametros(datosCurvaIV_Frozen, 'frozen');
+
+            // Limpiar las curvas activas locales, del gráfico y resetear tabla 'viva'
             datosCurvaIV = [];
             datosCurvaPV = [];
             graficoIV.data.datasets[0].data = [];
             graficoPV.data.datasets[0].data = [];
+            calcularYMostrarParametros([], 'viva');
 
             // Refrescar render en pantalla
             graficoIV.update();
             graficoPV.update();
-            console.log("Curva guardada en memoria estática secundaria (gris). Ready para comparar.");
+            console.log("Curva guardada en memoria estática secundaria (gris) y parámetros volcados a Frozen.");
         });
     }
 
-    // Escuchador de Acción: CLEAR CURVE (NUEVO - Deja la web tal y como inicia)
+    // Escuchador de Acción: CLEAR CURVE (MODIFICADO - Resetea también tablas)
     if (botonClear) {
         botonClear.addEventListener('click', () => {
             // Vaciar todas las colecciones de datos (Activas, Puntos de operación en vivo y Congeladas)
             datosCurvaIV = [];
             datosCurvaPV = [];
+            datosCurvaIV_Frozen = [];
 
             graficoIV.data.datasets[0].data = []; // I-V Curve
             graficoIV.data.datasets[1].data = []; // Operating Point
@@ -453,10 +510,14 @@ if (!window.__ivvisualizer_initialized) {
             graficoPV.data.datasets[1].data = []; // Operating Point
             graficoPV.data.datasets[2].data = []; // Frozen Curve
 
+            // Limpiar los textos paramétricos de ambas filas en la tabla
+            calcularYMostrarParametros([], 'viva');
+            calcularYMostrarParametros([], 'frozen');
+
             // Forzar actualización total
             graficoIV.update();
             graficoPV.update();
-            console.log("Gráficos reseteados por completo a su estado inicial.");
+            console.log("Gráficos y tablas reseteados por completo a su estado inicial.");
         });
     }
 
@@ -492,7 +553,7 @@ if (!window.__ivvisualizer_initialized) {
         });
     }
 
-    // PROCESADOR Y FORMATEADOR DE CURVAS DESACOPLADAS
+    // PROCESADOR Y FORMATEADOR DE CURVAS DESACOPLADAS (MODIFICADO)
     function procesarYGraficarCurvas(lineas) {
         let nuevosPuntosIV = [];
         let nuevosPuntosPV = [];
@@ -523,15 +584,18 @@ if (!window.__ivvisualizer_initialized) {
         graficoIV.data.datasets[0].data = datosCurvaIV;
         graficoPV.data.datasets[0].data = datosCurvaPV;
 
+        // Calcular y pintar parámetros dinámicos de la curva viva inmediatamente
+        calcularYMostrarParametros(datosCurvaIV, 'viva');
+
         graficoIV.update();
         graficoPV.update();
     }
 
     // 4. LÓGICA DINÁMICA DEL SLIDER PRINCIPAL Y COMANDOS BINARIOS
     const configModos = {
-        MODO1: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "MPPT (Max Power Limit):",    byteModo: 0xB1, init: 500 }, 
-        MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):",   byteModo: 0xB2, init: 50 },  
-        MODO3: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty Cycle):",      byteModo: 0xB3, init: 0 },
+        MODO1: { habilitado: true,  min: 0,  max: 400, step: 5,  unidad: "W",  texto: "MPPT (Max Power Limit):",   byteModo: 0xB1, init: 500 }, 
+        MODO2: { habilitado: true,  min: 10, max: 50,  step: 1,  unidad: "V",  texto: "Setpoint (Input Voltage):",    byteModo: 0xB2, init: 50 },  
+        MODO3: { habilitado: true,  min: 0,  max: 100, step: 1,  unidad: "%",  texto: "Setpoint (Duty Cycle):",       byteModo: 0xB3, init: 0 },
     };
 
     async function enviarComandoBinario() {
