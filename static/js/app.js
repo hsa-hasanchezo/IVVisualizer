@@ -685,8 +685,8 @@ if (!window.__ivvisualizer_initialized) {
     // 5. CONTROL DEL MODAL DE CONFIGURACIÓN AMPLIADO (CALIBRACIÓN + GRÁFICAS)
     const botonConfig = document.getElementById('botonConfig');
     const modalConfig = document.getElementById('modalConfig');
-    const btnGuardarCal = document.getElementById('btnGuardarCal');
-    const btnCancelarCal = document.getElementById('btnCancelarCal');
+    const btnGuardarCal = document.getElementById('botonGuardarConfig');
+    const btnCancelarCal = document.getElementById('botonCerrarConfig');
 
     // Escuchar cambios en vivo del slider del modal
     if (cfgPuntosBarrido && cfgPuntosBarridoText) {
