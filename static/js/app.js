@@ -302,12 +302,12 @@ if (!window.__ivvisualizer_initialized) {
         }
 
     // Escribir datos formateados en la tabla coincidiendo con el HTML
-    if (elVoc) elVoc.innerText = voc.toFixed(2);
-    if (elIsc) elIsc.innerText = isc.toFixed(2);
-    if (elVmpp) elVmpp.innerText = vMpp.toFixed(2);
-    if (elImpp) elImpp.innerText = iMpp.toFixed(2);
-    if (elPmpp) elPmpp.innerText = pMax.toFixed(1);
-    if (elFf) elFf.innerText = ff.toFixed(1);
+    if (elVoc) elVoc.innerText = `${voc.toFixed(1)} V`;
+    if (elIsc) elIsc.innerText = `${isc.toFixed(2)} A`;
+    if (elVmpp) elVmpp.innerText = `${vMpp.toFixed(1)} V`;
+    if (elImpp) elImpp.innerText = `${iMpp.toFixed(2)} A`;
+    if (elPmpp) elPmpp.innerText = `${pMax.toFixed(0)} W`;
+    if (elFf) elFf.innerText = `${ff.toFixed(1)} %`;
 }
 
     
