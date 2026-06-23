@@ -18,9 +18,15 @@ if (!window.__ivvisualizer_initialized) {
   };
 
   // Parámetro de configuración para el barrido de curva
-  let puntosBarridoConfig = 100; 
+  let puntosBarridoConfig = 100;
 
-  // FUNCIÓN PARA CARGAR LA CONFIGURACIÓN DE LOCALSTORAGE
+  // Bluetooth IDs
+  let configBluetooth = {
+    serviceUuid: "0000ffe0-0000-1000-8000-00805f9b34fb",
+    characteristicUuid: "0000ffe1-0000-1000-8000-00805f9b34fb"
+  };
+
+// FUNCIÓN PARA CARGAR LA CONFIGURACIÓN DE LOCALSTORAGE
   function cargarConfiguracionLocal() {
       const calGuardada = localStorage.getItem('pv_calibracion');
       if (calGuardada) {
@@ -33,6 +39,12 @@ if (!window.__ivvisualizer_initialized) {
       const ptsGuardados = localStorage.getItem('pv_puntos_barrido');
       if (ptsGuardados) {
           puntosBarridoConfig = parseInt(ptsGuardados, 10);
+      }
+      
+      // NUEVO: Cargar los UUIDs de Bluetooth si ya existen en el LocalStorage
+      const bleGuardado = localStorage.getItem('pv_config_bluetooth');
+      if (bleGuardado) {
+          configBluetooth = JSON.parse(bleGuardado);
       }
   }
 
