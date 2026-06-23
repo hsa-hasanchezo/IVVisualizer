@@ -41,7 +41,6 @@ if (!window.__ivvisualizer_initialized) {
           puntosBarridoConfig = parseInt(ptsGuardados, 10);
       }
       
-      // NUEVO: Cargar los UUIDs de Bluetooth si ya existen en el LocalStorage
       const bleGuardado = localStorage.getItem('pv_config_bluetooth');
       if (bleGuardado) {
           configBluetooth = JSON.parse(bleGuardado);
@@ -339,14 +338,15 @@ if (!window.__ivvisualizer_initialized) {
             return;
           }
 
+          // CORRECCIÓN: Filtramos por el SERVICE_UUID dinámico guardado en configBluetooth
           const device = await navigator.bluetooth.requestDevice({ 
-            filters: [{ namePrefix: 'DSD TECH' }], 
-            optionalServices: [SERVICE_UUID] 
+            filters: [{ services: [configBluetooth.SERVICE_UUID] }]
           });
 
           const server = await device.gatt.connect();
-          const service = await server.getPrimaryService(SERVICE_UUID);
-          const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+          // CORRECCIÓN: Usamos las propiedades dinámicas del objeto global configBluetooth
+          const service = await server.getPrimaryService(configBluetooth.SERVICE_UUID);
+          const characteristic = await service.getCharacteristic(configBluetooth.CHARACTERISTIC_UUID);
           
           connectedCharacteristic = characteristic;
           connectedDevice = device;
