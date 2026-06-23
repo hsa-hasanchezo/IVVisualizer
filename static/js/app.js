@@ -22,8 +22,8 @@ if (!window.__ivvisualizer_initialized) {
 
   // Bluetooth IDs
   let configBluetooth = {
-    serviceUuid: "0000ffe0-0000-1000-8000-00805f9b34fb",
-    characteristicUuid: "0000ffe1-0000-1000-8000-00805f9b34fb"
+    SERVICE_UUID: "0000ffe0-0000-1000-8000-00805f9b34fb",
+    CHARACTERISTIC_UUID: "0000ffe1-0000-1000-8000-00805f9b34fb"
   };
 
 // FUNCIÓN PARA CARGAR LA CONFIGURACIÓN DE LOCALSTORAGE
@@ -86,10 +86,6 @@ if (!window.__ivvisualizer_initialized) {
     if (!canvasIV || !canvasPV) return; 
     const ctxIV = canvasIV.getContext('2d');
     const ctxPV = canvasPV.getContext('2d');
-
-    // UUIDs fijos del módulo DSD TECH (HM-10)
-    const SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
-    const CHARACTERISTIC_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
 
     const hasWebBluetooth = !!(navigator && navigator.bluetooth && typeof navigator.bluetooth.requestDevice === 'function');
     if (!hasWebBluetooth && botonConectar) {
@@ -694,82 +690,95 @@ if (!window.__ivvisualizer_initialized) {
         actualizarSliderDinámico();
     }
 
-    // 5. CONTROL DEL MODAL DE CONFIGURACIÓN AMPLIADO (CALIBRACIÓN + GRÁFICAS)
-    const botonConfig = document.getElementById('botonConfig');
-    const modalConfig = document.getElementById('modalConfig');
-    const btnGuardarCal = document.getElementById('botonGuardarConfig');
-    const btnCancelarCal = document.getElementById('botonCerrarConfig');
+   // 5. CONTROL DEL MODAL DE CONFIGURACIÓN AMPLIADO (CALIBRACIÓN + GRÁFICAS + BLUETOOTH)
+const botonConfig = document.getElementById('botonConfig');
+const modalConfig = document.getElementById('modalConfig');
+const btnGuardarCal = document.getElementById('botonGuardarConfig');
+const btnCancelarCal = document.getElementById('botonCerrarConfig');
 
-    // Escuchar cambios en vivo del slider del modal
-    if (cfgPuntosBarrido && cfgPuntosBarridoText) {
-        cfgPuntosBarrido.addEventListener('input', () => {
-            cfgPuntosBarridoText.innerText = `${cfgPuntosBarrido.value} pts`;
-        });
-    }
+// Elementos HTML de la configuración de Bluetooth
+const cfgBleService = document.getElementById('cfgBleService');
+const cfgBleCharacteristic = document.getElementById('cfgBleCharacteristic');
 
-    if (botonConfig && modalConfig) {
-        botonConfig.addEventListener('click', () => {
-            // Cargar valores de calibración en los inputs
-            document.getElementById('cal_c1').value = calibracion.V_IN_m;
-            document.getElementById('cal_c2').value = calibracion.V_IN_n;
-            document.getElementById('cal_c3').value = calibracion.I_IN_m;
-            document.getElementById('cal_c4').value = calibracion.I_IN_n;
-            document.getElementById('cal_c5').value = calibracion.V_OUT_m;
-            document.getElementById('cal_c6').value = calibracion.V_OUT_n;
-            document.getElementById('cal_c7').value = calibracion.I_OUT_m;
-            document.getElementById('cal_c8').value = calibracion.I_OUT_n;
-            
-            // Cargar valores de ejes y barrido en los selectores/slider
-            if (cfgMaxVoltaje) cfgMaxVoltaje.value = limitesGraficas.maxVoltaje;
-            if (cfgMaxCorriente) cfgMaxCorriente.value = limitesGraficas.maxCorriente;
-            if (cfgMaxPotencia) cfgMaxPotencia.value = limitesGraficas.maxPotencia;
-            if (cfgPuntosBarrido) {
-                cfgPuntosBarrido.value = puntosBarridoConfig;
-                cfgPuntosBarridoText.innerText = `${puntosBarridoConfig} pts`;
-            }
+// Escuchar cambios en vivo del slider del modal
+if (cfgPuntosBarrido && cfgPuntosBarridoText) {
+    cfgPuntosBarrido.addEventListener('input', () => {
+        cfgPuntosBarridoText.innerText = `${cfgPuntosBarrido.value} pts`;
+    });
+}
 
-            modalConfig.style.display = 'flex';
-        });
+if (botonConfig && modalConfig) {
+    botonConfig.addEventListener('click', () => {
+        // Cargar valores de calibración en los inputs
+        document.getElementById('cal_c1').value = calibracion.V_IN_m;
+        document.getElementById('cal_c2').value = calibracion.V_IN_n;
+        document.getElementById('cal_c3').value = calibracion.I_IN_m;
+        document.getElementById('cal_c4').value = calibracion.I_IN_n;
+        document.getElementById('cal_c5').value = calibracion.V_OUT_m;
+        document.getElementById('cal_c6').value = calibracion.V_OUT_n;
+        document.getElementById('cal_c7').value = calibracion.I_OUT_m;
+        document.getElementById('cal_c8').value = calibracion.I_OUT_n;
+        
+        // Cargar valores de ejes y barrido en los selectores/slider
+        if (cfgMaxVoltaje) cfgMaxVoltaje.value = limitesGraficas.maxVoltaje;
+        if (cfgMaxCorriente) cfgMaxCorriente.value = limitesGraficas.maxCorriente;
+        if (cfgMaxPotencia) cfgMaxPotencia.value = limitesGraficas.maxPotencia;
+        if (cfgPuntosBarrido) {
+            cfgPuntosBarrido.value = puntosBarridoConfig;
+            cfgPuntosBarridoText.innerText = `${puntosBarridoConfig} pts`;
+        }
 
-        btnCancelarCal.addEventListener('click', () => {
-            modalConfig.style.display = 'none';
-        });
+        // Cargar los UUIDs de Bluetooth en los campos de texto al abrir el modal (en Mayúsculas)
+        if (cfgBleService) cfgBleService.value = configBluetooth.SERVICE_UUID;
+        if (cfgBleCharacteristic) cfgBleCharacteristic.value = configBluetooth.CHARACTERISTIC_UUID;
 
-        btnGuardarCal.addEventListener('click', () => {
-            // 1. Guardar constantes de calibración
-            calibracion.V_IN_m = parseFloat(document.getElementById('cal_c1').value) || 0.0;
-            calibracion.V_IN_n = parseFloat(document.getElementById('cal_c2').value) || 0.0;
-            calibracion.I_IN_m = parseFloat(document.getElementById('cal_c3').value) || 0.0;
-            calibracion.I_IN_n = parseFloat(document.getElementById('cal_c4').value) || 0.0;
-            calibracion.V_OUT_m = parseFloat(document.getElementById('cal_c5').value) || 0.0;
-            calibracion.V_OUT_n = parseFloat(document.getElementById('cal_c6').value) || 0.0;
-            calibracion.I_OUT_m = parseFloat(document.getElementById('cal_c7').value) || 0.0;
-            calibracion.I_OUT_n = parseFloat(document.getElementById('cal_c8').value) || 0.0;
-            
-            // 2. Guardar límites de gráficas y puntos desde el DOM
-            if (cfgMaxVoltaje) limitesGraficas.maxVoltaje = parseInt(cfgMaxVoltaje.value, 10);
-            if (cfgMaxCorriente) limitesGraficas.maxCorriente = parseInt(cfgMaxCorriente.value, 10);
-            if (cfgMaxPotencia) limitesGraficas.maxPotencia = parseInt(cfgMaxPotencia.value, 10);
-            if (cfgPuntosBarrido) puntosBarridoConfig = parseInt(cfgPuntosBarrido.value, 10);
+        modalConfig.style.display = 'flex';
+    });
 
-            // 3. PERSISTENCIA EN LOCALSTORAGE (Para que no se borre al recargar)
-            localStorage.setItem('pv_calibracion', JSON.stringify(calibracion));
-            localStorage.setItem('pv_limites_graficas', JSON.stringify(limitesGraficas));
-            localStorage.setItem('pv_puntos_barrido', puntosBarridoConfig.toString());
+    btnCancelarCal.addEventListener('click', () => {
+        modalConfig.style.display = 'none';
+    });
 
-            // 4. APLICAR ESCALAS EN TIEMPO REAL A CHART.JS
-            graficoIV.options.scales.x.max = limitesGraficas.maxVoltaje;
-            graficoIV.options.scales.y.max = limitesGraficas.maxCorriente;
-            
-            graficoPV.options.scales.x.max = limitesGraficas.maxVoltaje;
-            graficoPV.options.scales.y.max = limitesGraficas.maxPotencia;
+    btnGuardarCal.addEventListener('click', () => {
+        // 1. Guardar constantes de calibración
+        calibracion.V_IN_m = parseFloat(document.getElementById('cal_c1').value) || 0.0;
+        calibracion.V_IN_n = parseFloat(document.getElementById('cal_c2').value) || 0.0;
+        calibracion.I_IN_m = parseFloat(document.getElementById('cal_c3').value) || 0.0;
+        calibracion.I_IN_n = parseFloat(document.getElementById('cal_c4').value) || 0.0;
+        calibracion.V_OUT_m = parseFloat(document.getElementById('cal_c5').value) || 0.0;
+        calibracion.V_OUT_n = parseFloat(document.getElementById('cal_c6').value) || 0.0;
+        calibracion.I_OUT_m = parseFloat(document.getElementById('cal_c7').value) || 0.0;
+        calibracion.I_OUT_n = parseFloat(document.getElementById('cal_c8').value) || 0.0;
+        
+        // 2. Guardar límites de gráficas y puntos desde el DOM
+        if (cfgMaxVoltaje) limitesGraficas.maxVoltaje = parseInt(cfgMaxVoltaje.value, 10);
+        if (cfgMaxCorriente) limitesGraficas.maxCorriente = parseInt(cfgMaxCorriente.value, 10);
+        if (cfgMaxPotencia) limitesGraficas.maxPotencia = parseInt(cfgMaxPotencia.value, 10);
+        if (cfgPuntosBarrido) puntosBarridoConfig = parseInt(cfgPuntosBarrido.value, 10);
 
-            // Refrescar vistas de los charts de inmediato
-            graficoIV.update();
-            graficoPV.update();
+        // Guardar los UUIDs de Bluetooth en Mayúsculas (usando .trim() para evitar espacios fantasma)
+        if (cfgBleService) configBluetooth.SERVICE_UUID = cfgBleService.value.trim().toLowerCase();
+        if (cfgBleCharacteristic) configBluetooth.CHARACTERISTIC_UUID = cfgBleCharacteristic.value.trim().toLowerCase();
 
-            modalConfig.style.display = 'none';
-        });
-    }
+        // 3. PERSISTENCIA EN LOCALSTORAGE (Para que no se borre al recargar la pestaña)
+        localStorage.setItem('pv_calibracion', JSON.stringify(calibracion));
+        localStorage.setItem('pv_limites_graficas', JSON.stringify(limitesGraficas));
+        localStorage.setItem('pv_puntos_barrido', puntosBarridoConfig.toString());
+        localStorage.setItem('pv_config_bluetooth', JSON.stringify(configBluetooth));
+
+        // 4. APLICAR ESCALAS EN TIEMPO REAL A CHART.JS
+        graficoIV.options.scales.x.max = limitesGraficas.maxVoltaje;
+        graficoIV.options.scales.y.max = limitesGraficas.maxCorriente;
+        
+        graficoPV.options.scales.x.max = limitesGraficas.maxVoltaje;
+        graficoPV.options.scales.y.max = limitesGraficas.maxPotencia;
+
+        // Refrescar vistas de los charts de inmediato
+        graficoIV.update();
+        graficoPV.update();
+
+        modalConfig.style.display = 'none';
+    });
+}
   });
 }
