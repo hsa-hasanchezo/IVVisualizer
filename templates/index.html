@@ -266,7 +266,7 @@
         </div>
     </div>
 
-    <div id="modalConfig" class="modal-overlay" style="display: none;">
+<div id="modalConfig" class="modal-overlay" style="display: none;">
         <div class="modal-content"> 
             <h3 style="color: #2ecc71; margin-bottom: 5px; font-size: 16px;">Calibration Constants</h3>
             <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Adjust calibration constants of current and voltage sensors.</p>
@@ -326,6 +326,22 @@
                     <div class="input-field" style="grid-column: span 2; margin-top: 10px;">
                         <label>Sweep Resolution: <span id="cfgPuntosBarridoText" style="color:#ffca28;">100 pts</span></label>
                         <input type="range" id="cfgPuntosBarrido" min="50" max="250" step="10" value="100" style="width: 100%; accent-color: #ffca28;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section" style="margin-top: 20px; border-top: 1px solid #444; padding-top: 15px;">
+                <h3 style="color: #2ecc71; margin-bottom: 5px; font-size: 16px;">Bluetooth Configuration</h3>
+                <p style="color: #bbb; font-size: 13px; margin-bottom: 15px;">Define the BLE Service and Characteristic UUIDs.</p>
+                
+                <div class="modal-grid">
+                    <div class="input-field" style="grid-column: span 2;">
+                        <label>Service UUID / Name:</label>
+                        <input type="text" id="cfgBleService" placeholder="e.g. 4fafc201-75d5-4722-8111-222a3b451306" style="padding: 8px; border-radius: 8px; background: #2c2c35; color: white; border: 1px solid #444;">
+                    </div>
+                    <div class="input-field" style="grid-column: span 2;">
+                        <label>Characteristic UUID:</label>
+                        <input type="text" id="cfgBleCharacteristic" placeholder="e.g. beb5483e-36e1-4688-b7f5-ea07361b26a8" style="padding: 8px; border-radius: 8px; background: #2c2c35; color: white; border: 1px solid #444;">
                     </div>
                 </div>
             </div>
