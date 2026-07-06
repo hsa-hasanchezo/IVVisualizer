@@ -426,7 +426,7 @@ if (!window.__ivvisualizer_initialized) {
                             if (dispIout) dispIout.innerText = iOutReal.toFixed(1);
                             if (dispPout) dispPout.innerText = pOutReal.toFixed(0);
                             if (dispDuty) dispDuty.innerText = dutyVal.toFixed(0);
-                            if (dispEff)  dispEff.innerText  = eficiencia.toFixed(0);
+                            if (dispEff)  dispEff.innerText  = eficiencia.toFixed(1);
 
                             // ACTUALIZAR PUNTO GORDO EN TIEMPO REAL
                             graficoIV.data.datasets[1].data = [{ x: vInReal, y: iInReal }];
