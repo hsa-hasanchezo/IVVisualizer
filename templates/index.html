@@ -114,12 +114,13 @@
             color: #ffca28;
             font-weight: bold;
         }
-        .input-field input {
+        .input-field input, .input-field select {
             padding: 8px;
             border-radius: 8px;
             background: #2c2c35;
             color: white;
             border: 1px solid #444;
+            font-size: 14px;
         }
 
         /* --- RESPONSIVE DESIGN (Media Queries) --- */
@@ -326,6 +327,14 @@
                     <div class="input-field" style="grid-column: span 2; margin-top: 10px;">
                         <label>Sweep Resolution: <span id="cfgPuntosBarridoText" style="color:#ffca28;">100 pts</span></label>
                         <input type="range" id="cfgPuntosBarrido" min="50" max="250" step="10" value="100" style="width: 100%; accent-color: #ffca28;">
+                    </div>
+                    <!-- NUEVO DESPLEGABLE AÑADIDO AQUÍ -->
+                    <div class="input-field" style="grid-column: span 2; margin-top: 10px;">
+                        <label>Tracing Mode:</label>
+                        <select id="cfgTracingMode">
+                            <option value="online" selected>Online I-V tracing</option>
+                            <option value="offline">Offline IV tracer</option>
+                        </select>
                     </div>
                 </div>
             </div>
