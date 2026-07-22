@@ -472,8 +472,14 @@ if (!window.__ivvisualizer_initialized) {
                 // Extraer MSB y LSB de la variable global dinámica
                 const msb = (puntosBarridoConfig >> 8) & 0xFF;
                 const lsb = puntosBarridoConfig & 0xFF;
+                const selectorTipoBarrido = document.getElementById('selectorTipoBarrido');
+                const tipoBarrido = selectorTipoBarrido ? selectorTipoBarrido.value : 'offline';
 
-                const comandoBarrido = new Uint8Array([0xAA, 0xC1, msb, lsb]);
+                // Seleccionar el byte de comando según el modo: C1 (offline) o C2 (online)
+                const byteComando = (tipoBarrido === 'online') ? 0xC2 : 0xC1;
+
+                const comandoBarrido = new Uint8Array([0xAA, byteComando, msb, lsb]);
+
                 
                 await connectedCharacteristic.writeValue(comandoBarrido);
                 console.log(`Solicitado Barrido IV dinámico de ${puntosBarridoConfig} puntos.`);
