@@ -4,8 +4,8 @@ if (!window.__ivvisualizer_initialized) {
 
   // A) VARIABLES GLOBALES DE CALIBRACIÓN Y GRÁFICAS (Persistencia con localStorage)
   let calibracion = {
-      V_IN_m: 0.01533,  V_IN_n: 0.038,  
-      I_IN_m: 0.00389,  I_IN_n: 0.009,
+      V_IN_m: 0.01534,  V_IN_n: 0.00756,  
+      I_IN_m: 0.00391,  I_IN_n: 0.00665,
       V_OUT_m: -0.01640, V_OUT_n: 63.812, 
       I_OUT_m: 0.00386, I_OUT_n: 0.009
   };
