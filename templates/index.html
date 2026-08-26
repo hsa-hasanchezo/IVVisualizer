@@ -159,7 +159,7 @@
                 <button id="botonConfig" class="btn" style="background-color: #555;">Configuration</button>
             </div>
 
-            <div class="control-group" style="margin-top: 10px;">
+            <div class="control-group" style="margin-top: 10px; display: none;">
                 <label for="selectorModo">Control mode:</label>
                 <select id="selectorModo">
                     <option value="MODO1">MPPT control mode</option>
@@ -168,7 +168,7 @@
                 </select>
             </div>
 
-            <div class="control-group">
+            <div class="control-group" style="display: none;">
                 <label id="labelSlider" for="barraFijarVal">Setpoint (Duty Cycle): <span id="valorSliderText">0</span>%</label>
                 <input type="range" id="barraFijarVal" min="0" max="100" value="0" disabled>
             </div>
